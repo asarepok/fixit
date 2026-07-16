@@ -7,110 +7,170 @@ import '../../providers/auth_provider.dart';
 import '../../providers/location_provider.dart';
 import '../../utils/extensions.dart';
 
-// Shows the signed-in user's own profile. Reads the profile through
-// currentUserProfileProvider rather than calling Firestore or
-// FirebaseAuth directly, so it automatically shows a loading spinner while
-// the profile loads and an error message if it fails.
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
-  // Reads the device's GPS position through locationServiceProvider, then
-  // saves it through AuthController.updateMyLocation. Used by the "Update
-  // My Location" button below.
-  Future<void> updateMyLocation(BuildContext context, WidgetRef ref) async {
+  Future<void> _updateMyLocation(BuildContext context, WidgetRef ref) async {
     try {
-      final position = await ref.read(locationServiceProvider).getCurrentLocation();
-
-      await ref.read(authControllerProvider.notifier).updateMyLocation(
-            position.latitude,
-            position.longitude,
-          );
-
-      if (context.mounted) {
-        context.showSnack("Location updated successfully");
-      }
-    } catch (e) {
-      if (context.mounted) context.showSnack(e.toString());
+      final position = await ref
+          .read(locationServiceProvider)
+          .getCurrentLocation();
+      await ref
+          .read(authControllerProvider.notifier)
+          .updateMyLocation(position.latitude, position.longitude);
+      if (context.mounted) context.showSnack('Location updated successfully');
+    } catch (error) {
+      if (context.mounted) context.showSnack(error.toString());
     }
+  }
+
+  Future<void> _logout(BuildContext context, WidgetRef ref) async {
+    await ref.read(authControllerProvider.notifier).logout();
+    if (context.mounted) context.go(AppRoutes.login);
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // AsyncValue<UserModel?>: loading while the profile is being fetched,
-    // an error if it fails, or the loaded UserModel in data.
     final userAsync = ref.watch(currentUserProfileProvider);
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Profile"),
-      ),
+      appBar: AppBar(title: const Text('Profile')),
       body: userAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(child: Text(error.toString())),
         data: (user) {
           if (user == null) {
-            return const Center(child: Text("No profile found"));
+            return const Center(child: Text('No profile found'));
           }
-
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const CircleAvatar(
-                  radius: 50,
-                  child: Icon(Icons.person, size: 50),
+          final initials = user.name.trim().isEmpty
+              ? 'U'
+              : user.name
+                    .trim()
+                    .split(RegExp(r'\s+'))
+                    .take(2)
+                    .map((word) => word[0])
+                    .join()
+                    .toUpperCase();
+          return ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 28,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        child: Text(
+                          initials,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              user.name.isEmpty ? 'Your account' : user.name,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              user.email,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-
-                const SizedBox(height: 20),
-
-                Text(
-                  user.name.isEmpty ? "No name" : user.name,
-                  style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 16),
+              _ProfileOption(
+                icon: Icons.person_outline,
+                title: 'Edit Profile',
+                onTap: () async {
+                  await context.push(AppRoutes.editProfile);
+                  ref.invalidate(currentUserProfileProvider);
+                },
+              ),
+              _ProfileOption(
+                icon: Icons.location_on_outlined,
+                title: 'Update My Location',
+                onTap: () => _updateMyLocation(context, ref),
+              ),
+              _ProfileOption(
+                icon: Icons.settings_outlined,
+                title: 'Settings',
+                onTap: () => context.push(AppRoutes.settings),
+              ),
+              const SizedBox(height: 8),
+              if (user.isArtisan)
+                _ProfileOption(
+                  icon: Icons.swap_horiz_rounded,
+                  title: 'Switch to Artisan Mode',
+                  highlighted: true,
+                  onTap: () => context.push(AppRoutes.artisanDashboard),
+                )
+              else
+                _ProfileOption(
+                  icon: Icons.handyman_outlined,
+                  title: user.hasPendingArtisanApplication
+                      ? 'View Artisan Application'
+                      : 'Become an Artisan',
+                  highlighted: true,
+                  onTap: () => context.push(
+                    user.hasPendingArtisanApplication
+                        ? AppRoutes.artisanApplicationStatus
+                        : AppRoutes.becomeArtisan,
+                  ),
                 ),
-
-                const SizedBox(height: 10),
-
-                Text(user.email),
-
-                const SizedBox(height: 10),
-
-                Text(user.phone),
-
-                const SizedBox(height: 10),
-
-                Chip(label: Text(user.role)),
-
-                const SizedBox(height: 30),
-
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.edit),
-                  label: const Text("Edit Profile"),
-                  onPressed: () async {
-                    await context.push(AppRoutes.editProfile);
-                    // Refetch the profile in case it was changed on the
-                    // edit screen.
-                    ref.invalidate(currentUserProfileProvider);
-                  },
-                ),
-
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.settings),
-                  label: const Text("Settings"),
-                  onPressed: () {
-                    context.push(AppRoutes.settings);
-                  },
-                ),
-
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.location_on),
-                  label: const Text("Update My Location"),
-                  onPressed: () => updateMyLocation(context, ref),
-                ),
-              ],
-            ),
+              const SizedBox(height: 8),
+              _ProfileOption(
+                icon: Icons.logout_rounded,
+                title: 'Log Out',
+                onTap: () => _logout(context, ref),
+              ),
+            ],
           );
         },
       ),
     );
   }
+}
+
+class _ProfileOption extends StatelessWidget {
+  const _ProfileOption({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    this.highlighted = false,
+  });
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+  final bool highlighted;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    child: ListTile(
+      leading: Icon(icon, color: highlighted ? const Color(0xFFFFA62B) : null),
+      title: Text(
+        title,
+        style: highlighted
+            ? const TextStyle(
+                color: Color(0xFFFFA62B),
+                fontWeight: FontWeight.w700,
+              )
+            : null,
+      ),
+      trailing: const Icon(Icons.chevron_right_rounded),
+      onTap: onTap,
+    ),
+  );
 }

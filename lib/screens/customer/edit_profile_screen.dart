@@ -2,85 +2,81 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/auth_provider.dart';
+import '../../utils/extensions.dart';
+import '../../widgets/primary_button.dart';
 
-// Lets the signed-in user edit their name and phone number. Saving is done
-// through AuthController.updateProfile, this screen never calls Firestore
-// directly.
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
-
   @override
   ConsumerState<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
-  late final TextEditingController nameController;
-  late final TextEditingController phoneController;
+  late final TextEditingController _nameController;
+  late final TextEditingController _phoneController;
 
   @override
   void initState() {
     super.initState();
-    // ProfileScreen is still on the navigation stack underneath this
-    // screen and is already watching currentUserProfileProvider, so its
-    // value is already loaded here. Using ref.read with valueOrNull avoids
-    // fetching the profile a second time just to fill in these fields.
     final user = ref.read(currentUserProfileProvider).valueOrNull;
-    nameController = TextEditingController(text: user?.name);
-    phoneController = TextEditingController(text: user?.phone);
+    _nameController = TextEditingController(text: user?.name ?? '');
+    _phoneController = TextEditingController(text: user?.phone ?? '');
   }
 
   @override
   void dispose() {
-    nameController.dispose();
-    phoneController.dispose();
+    _nameController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
-  // Saves the edited name and phone number, then returns to the previous
-  // screen. ProfileScreen refreshes its own copy of the profile after this
-  // screen is popped.
-  Future<void> updateProfile() async {
-    await ref.read(authControllerProvider.notifier).updateProfile(
-          name: nameController.text.trim(),
-          phone: phoneController.text.trim(),
-        );
-
-    if (mounted) {
-      Navigator.pop(context, true);
+  Future<void> _save() async {
+    if (_nameController.text.trim().isEmpty ||
+        _phoneController.text.trim().isEmpty) {
+      context.showSnack('Enter your name and phone number.');
+      return;
+    }
+    try {
+      await ref
+          .read(authControllerProvider.notifier)
+          .updateProfile(
+            name: _nameController.text.trim(),
+            phone: _phoneController.text.trim(),
+          );
+      if (mounted) Navigator.pop(context, true);
+    } catch (error) {
+      if (mounted) context.showSnack(error.toString());
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final loading = ref.watch(authControllerProvider).isLoading;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Edit Profile"),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: "Name"),
-            ),
-
-            const SizedBox(height: 20),
-
-            TextField(
-              controller: phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: "Phone"),
-            ),
-
-            const SizedBox(height: 30),
-
-            ElevatedButton(
-              onPressed: updateProfile,
-              child: const Text("Save Changes"),
-            ),
-          ],
-        ),
+      appBar: AppBar(title: const Text('Edit Profile')),
+      body: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          Text('NAME', style: Theme.of(context).textTheme.labelLarge),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _nameController,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(hintText: 'Your name'),
+          ),
+          const SizedBox(height: 20),
+          Text('PHONE', style: Theme.of(context).textTheme.labelLarge),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _phoneController,
+            keyboardType: TextInputType.phone,
+            decoration: const InputDecoration(hintText: '024 000 0000'),
+          ),
+          const SizedBox(height: 28),
+          loading
+              ? const Center(child: CircularProgressIndicator())
+              : PrimaryButton(text: 'Save Changes', onPressed: _save),
+        ],
       ),
     );
   }

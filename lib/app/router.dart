@@ -11,15 +11,21 @@ import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
 import '../screens/auth/forgot_password_screen.dart';
 import '../screens/customer/main_navigation_screen.dart';
+import '../screens/customer/search_screen.dart';
 import '../screens/customer/artisan_profile_screen.dart';
 import '../screens/customer/booking_details_screen.dart';
 import '../screens/customer/profile_screen.dart';
 import '../screens/customer/edit_profile_screen.dart';
+import '../screens/customer/rate_artisan_screen.dart';
 import '../screens/customer/nearby_artisans_screen.dart';
 import '../screens/artisan/dashboard_screen.dart';
+import '../screens/onboarding/artisan_application_screen.dart';
+import '../screens/onboarding/artisan_application_status_screen.dart';
+import '../screens/onboarding/become_artisan_screen.dart';
 import '../screens/admin/admin_dashboard_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/maps/map_screen.dart';
+import '../models/user_model.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: AppRoutes.splash,
@@ -50,11 +56,29 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.artisanProfile,
-      builder: (context, state) => const ArtisanProfileScreen(),
+      builder: (context, state) =>
+          ArtisanProfileScreen(artisan: state.extra as UserModel?),
+    ),
+    GoRoute(
+      path: AppRoutes.search,
+      builder: (context, state) =>
+          SearchScreen(initialQuery: state.extra as String? ?? ''),
     ),
     GoRoute(
       path: AppRoutes.artisanDashboard,
       builder: (context, state) => const ArtisanDashboardScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.becomeArtisan,
+      builder: (context, state) => const BecomeArtisanScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.artisanApplication,
+      builder: (context, state) => const ArtisanApplicationScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.artisanApplicationStatus,
+      builder: (context, state) => const ArtisanApplicationStatusScreen(),
     ),
     GoRoute(
       path: AppRoutes.adminDashboard,
@@ -74,7 +98,8 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.bookingDetails,
-      builder: (context, state) => const BookingDetailsScreen(),
+      builder: (context, state) =>
+          BookingDetailsScreen(artisan: state.extra as UserModel?),
     ),
     GoRoute(
       path: AppRoutes.home,
@@ -83,6 +108,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.editProfile,
       builder: (context, state) => const EditProfileScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.rateArtisan,
+      builder: (context, state) => const RateArtisanScreen(),
     ),
   ],
 );

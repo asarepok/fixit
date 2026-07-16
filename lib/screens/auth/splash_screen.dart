@@ -1,24 +1,30 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class SplashScreen extends StatefulWidget {
+import '../../app/constants.dart';
+import '../../providers/auth_provider.dart';
+
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
-
+class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
+    Timer(const Duration(seconds: 3), _continueFromSplash);
+  }
 
-    Timer(const Duration(seconds: 3), () {
-      context.go('/onboarding');
-    });
+  void _continueFromSplash() {
+    if (!mounted) return;
+    final uid = ref.read(authStateProvider).valueOrNull;
+    context.go(uid == null ? AppRoutes.onboarding : AppRoutes.home);
   }
 
   @override
@@ -28,10 +34,7 @@ class _SplashScreenState extends State<SplashScreen> {
         width: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Color(0xff1565C0),
-              Color(0xff42A5F5),
-            ],
+            colors: [Color(0xFF5B98E5), Color(0xFF78B0EF)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -39,27 +42,29 @@ class _SplashScreenState extends State<SplashScreen> {
         child: const Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.handyman_rounded,
-              size: 120,
-              color: Colors.white,
+            CircleAvatar(
+              radius: 34,
+              backgroundColor: Colors.transparent,
+              child: Icon(
+                Icons.handyman_rounded,
+                color: Colors.white,
+                size: 42,
+              ),
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 22),
             Text(
-              "FixIt GH",
+              'FixIt GH',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 34,
-                fontWeight: FontWeight.bold,
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
               ),
             ),
-            SizedBox(height: 10),
+            SizedBox(height: 12),
             Text(
-              "Trusted artisans at your fingertips",
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 16,
-              ),
+              'Trusted artisans at your\nfingertips',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white, fontSize: 15),
             ),
           ],
         ),
