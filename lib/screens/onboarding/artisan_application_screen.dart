@@ -1,20 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../app/constants.dart';
+import '../../providers/verification_provider.dart';
 import '../../utils/extensions.dart';
 import '../../widgets/primary_button.dart';
 
-class ArtisanApplicationScreen extends StatefulWidget {
+class ArtisanApplicationScreen extends ConsumerStatefulWidget {
   const ArtisanApplicationScreen({super.key});
 
   @override
-  State<ArtisanApplicationScreen> createState() =>
+  ConsumerState<ArtisanApplicationScreen> createState() =>
       _ArtisanApplicationScreenState();
 }
 
-class _ArtisanApplicationScreenState extends State<ArtisanApplicationScreen> {
+class _ArtisanApplicationScreenState
+    extends ConsumerState<ArtisanApplicationScreen> {
   final _professionController = TextEditingController();
   final _bioController = TextEditingController();
-  bool _hasSelectedProof = false;
+  XFile? _document;
 
   @override
   void dispose() {
@@ -23,19 +29,36 @@ class _ArtisanApplicationScreenState extends State<ArtisanApplicationScreen> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _selectDocument() async {
+    final file = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
+    if (file != null && mounted) setState(() => _document = file);
+  }
+
+  Future<void> _submit() async {
     if (_professionController.text.trim().isEmpty ||
         _bioController.text.trim().isEmpty ||
-        !_hasSelectedProof) {
+        _document == null) {
       context.showSnack(
         'Complete your profession, bio, and proof of identity.',
       );
       return;
     }
 
-    context.showSnack(
-      'Application submission will be connected when the verification provider is available.',
-    );
+    try {
+      await ref
+          .read(verificationControllerProvider.notifier)
+          .submitApplication(
+            profession: _professionController.text.trim(),
+            bio: _bioController.text.trim(),
+            document: _document!,
+          );
+      if (mounted) context.go(AppRoutes.artisanApplicationStatus);
+    } catch (error) {
+      if (mounted) context.showSnack(error.toString());
+    }
   }
 
   @override
@@ -69,7 +92,7 @@ class _ArtisanApplicationScreenState extends State<ArtisanApplicationScreen> {
           const SizedBox(height: 8),
           InkWell(
             borderRadius: BorderRadius.circular(12),
-            onTap: () => setState(() => _hasSelectedProof = true),
+            onTap: _selectDocument,
             child: Container(
               height: 140,
               decoration: BoxDecoration(
@@ -85,16 +108,16 @@ class _ArtisanApplicationScreenState extends State<ArtisanApplicationScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    _hasSelectedProof
+                    _document != null
                         ? Icons.check_circle
                         : Icons.cloud_upload_outlined,
-                    color: _hasSelectedProof
+                    color: _document != null
                         ? Colors.green
                         : Theme.of(context).colorScheme.primary,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    _hasSelectedProof
+                    _document != null
                         ? 'Proof selected'
                         : 'Tap to upload a photo',
                   ),
@@ -103,7 +126,9 @@ class _ArtisanApplicationScreenState extends State<ArtisanApplicationScreen> {
             ),
           ),
           const SizedBox(height: 28),
-          PrimaryButton(text: 'Submit Application', onPressed: _submit),
+          ref.watch(verificationControllerProvider).isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : PrimaryButton(text: 'Submit Application', onPressed: _submit),
         ],
       ),
     );

@@ -14,6 +14,8 @@ import '../screens/customer/main_navigation_screen.dart';
 import '../screens/customer/search_screen.dart';
 import '../screens/customer/artisan_profile_screen.dart';
 import '../screens/customer/booking_details_screen.dart';
+import '../screens/customer/booking_detail_screen.dart';
+import '../screens/customer/payment_waiting_screen.dart';
 import '../screens/customer/profile_screen.dart';
 import '../screens/customer/edit_profile_screen.dart';
 import '../screens/customer/rate_artisan_screen.dart';
@@ -25,6 +27,7 @@ import '../screens/onboarding/become_artisan_screen.dart';
 import '../screens/admin/admin_dashboard_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/maps/map_screen.dart';
+import '../screens/chat/chat_thread_screen.dart';
 import '../models/user_model.dart';
 
 final GoRouter appRouter = GoRouter(
@@ -112,6 +115,21 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.rateArtisan,
       builder: (context, state) => const RateArtisanScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.bookingDetail,
+      builder: (context, state) =>
+          BookingDetailScreen(bookingId: state.extra as String),
+    ),
+    GoRoute(
+      path: AppRoutes.paymentWaiting,
+      builder: (context, state) =>
+          PaymentWaitingScreen(args: state.extra as PaymentWaitArgs),
+    ),
+    GoRoute(
+      path: AppRoutes.chatThread,
+      builder: (context, state) =>
+          ChatThreadScreen(chatId: state.extra as String),
     ),
   ],
 );
