@@ -22,10 +22,18 @@ class BookingRepository {
   // Creates a new booking at the given id, always starting as pending,
   // with no chat yet. A chat thread needs this booking's id to exist, so
   // BookingController creates the booking first, then the chat, then calls
-  // attachChatId below, rather than trying to create both at once. Using
-  // setDocument rather than addDocument means calling this again with the
-  // same bookingId (a retry after a failure partway through) just
-  // overwrites the same booking instead of creating a duplicate.
+  // attachChatId below, rather than trying to create both at once.
+  //
+  // Always call this exactly once per bookingId. Firestore treats a write
+  // to an id that already has a document as an update, not a create, and
+  // the update rule in firestore.rules is stricter than the create rule,
+  // so writing here twice for the same id can be denied even when nothing
+  // meaningful changed. BookingController is what makes a retry safe, by
+  // remembering whether it already called this for the pending id and
+  // skipping straight to the chat step if so, rather than this method
+  // trying to detect that itself (a read here would hit the same problem
+  // in reverse: reading an id that doesn't exist yet, on a normal first
+  // attempt, is also denied by these rules).
   Future<void> createBooking({
     required String bookingId,
     required String customerId,
@@ -36,6 +44,7 @@ class BookingRepository {
     if (customerId == artisanId) {
       throw Exception("You cannot book your own service.");
     }
+
     final booking = Booking(
       id: bookingId,
       customerId: customerId,

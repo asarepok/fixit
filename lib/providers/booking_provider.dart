@@ -58,14 +58,17 @@ class BookingController extends AsyncNotifier<void> {
     ref.invalidate(allBookingsProvider);
   }
 
-  // Remembers the id of a booking create that's still in progress or
-  // failed partway, keyed by what was actually requested. If the same
-  // request comes through again (the customer retrying after an error, or
-  // a double tap) before the first attempt finished, this resumes that
-  // same booking instead of creating a duplicate. Cleared once a create
-  // actually succeeds.
+  // Remembers a booking create that's still in progress or failed partway,
+  // keyed by what was actually requested. If the same request comes
+  // through again (the customer retrying after an error, or a double tap)
+  // before the first attempt finished, this resumes that same booking
+  // instead of creating a duplicate, and skips re-running the create step
+  // if it already went through, see BookingRepository.createBooking for
+  // why that step specifically can't just be safely repeated. Cleared
+  // once the whole thing actually succeeds.
   String? _pendingKey;
   String? _pendingBookingId;
+  bool _pendingBookingCreated = false;
 
   // Creates the booking, then a chat thread for it, then attaches the
   // thread's id back onto the booking. A chat needs the booking's id to
@@ -85,19 +88,21 @@ class BookingController extends AsyncNotifier<void> {
       final bookingRepo = ref.read(bookingRepositoryProvider);
 
       final key = '$customerId|$artisanId|$description|$location';
-      final bookingId = (key == _pendingKey && _pendingBookingId != null)
-          ? _pendingBookingId!
-          : bookingRepo.newBookingId();
+      final resuming = key == _pendingKey && _pendingBookingId != null;
+      final bookingId = resuming ? _pendingBookingId! : bookingRepo.newBookingId();
       _pendingKey = key;
       _pendingBookingId = bookingId;
 
-      await bookingRepo.createBooking(
-        bookingId: bookingId,
-        customerId: customerId,
-        artisanId: artisanId,
-        description: description,
-        location: location,
-      );
+      if (!resuming || !_pendingBookingCreated) {
+        await bookingRepo.createBooking(
+          bookingId: bookingId,
+          customerId: customerId,
+          artisanId: artisanId,
+          description: description,
+          location: location,
+        );
+        _pendingBookingCreated = true;
+      }
 
       final chatId = await ref
           .read(chatRepositoryProvider)
@@ -111,6 +116,7 @@ class BookingController extends AsyncNotifier<void> {
 
       _pendingKey = null;
       _pendingBookingId = null;
+      _pendingBookingCreated = false;
 
       _refreshLists();
       state = const AsyncData(null);
