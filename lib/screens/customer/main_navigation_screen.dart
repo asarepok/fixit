@@ -11,26 +11,16 @@ import 'profile_screen.dart';
 // The artisan role has its own dashboard screen instead of this shell, see
 // lib/screens/artisan/dashboard_screen.dart.
 class MainNavigationScreen extends StatefulWidget {
-
   const MainNavigationScreen({super.key});
 
-
   @override
-  State<MainNavigationScreen> createState() =>
-      _MainNavigationScreenState();
-
+  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
 
-
-class _MainNavigationScreenState
-    extends State<MainNavigationScreen> {
-
-
+class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int currentIndex = 0;
 
-
   final pages = const [
-
     HomeScreen(),
 
     SearchScreen(),
@@ -40,95 +30,58 @@ class _MainNavigationScreenState
     ChatScreen(),
 
     ProfileScreen(),
-
   ];
-
 
   @override
   Widget build(BuildContext context) {
-
-
     return Scaffold(
-
       body: pages[currentIndex],
 
-
       bottomNavigationBar: NavigationBar(
-
         selectedIndex: currentIndex,
 
-
-        onDestinationSelected: (index){
-
+        onDestinationSelected: (index) {
           setState(() {
-
             currentIndex = index;
-
           });
-
         },
 
-
         destinations: const [
-
           NavigationDestination(
-
             icon: Icon(Icons.home_outlined),
 
             selectedIcon: Icon(Icons.home),
 
             label: "Home",
-
           ),
 
+          NavigationDestination(icon: Icon(Icons.search), label: "Search"),
 
           NavigationDestination(
-
-            icon: Icon(Icons.search),
-
-            label: "Search",
-
-          ),
-
-
-          NavigationDestination(
-
             icon: Icon(Icons.book_outlined),
 
             selectedIcon: Icon(Icons.book),
 
             label: "Bookings",
-
           ),
 
-
           NavigationDestination(
-
             icon: Icon(Icons.chat_outlined),
 
             selectedIcon: Icon(Icons.chat),
 
             label: "Chat",
-
           ),
 
-
           NavigationDestination(
-
             icon: Icon(Icons.person_outline),
 
             selectedIcon: Icon(Icons.person),
 
             label: "Profile",
-
           ),
-
         ],
-
       ),
-
     );
-
   }
-
 }

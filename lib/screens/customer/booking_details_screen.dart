@@ -1,18 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../app/constants.dart';
 import '../../models/user_model.dart';
+import '../../providers/booking_provider.dart';
 import '../../utils/extensions.dart';
 import '../../widgets/primary_button.dart';
 
-class BookingDetailsScreen extends StatefulWidget {
+class BookingDetailsScreen extends ConsumerStatefulWidget {
   const BookingDetailsScreen({super.key, this.artisan});
   final UserModel? artisan;
 
   @override
-  State<BookingDetailsScreen> createState() => _BookingDetailsScreenState();
+  ConsumerState<BookingDetailsScreen> createState() =>
+      _BookingDetailsScreenState();
 }
 
-class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
+class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
   final _descriptionController = TextEditingController();
   final _locationController = TextEditingController();
 
@@ -23,15 +28,29 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
     super.dispose();
   }
 
-  void _sendRequest() {
+  Future<void> _sendRequest() async {
     if (_descriptionController.text.trim().isEmpty ||
         _locationController.text.trim().isEmpty) {
       context.showSnack('Add a description and location for the artisan.');
       return;
     }
-    context.showSnack(
-      'Booking submission will be connected when BookingController is available.',
-    );
+    if (widget.artisan == null) {
+      context.showSnack('Choose an artisan before sending a request.');
+      return;
+    }
+    try {
+      final bookingId = await ref
+          .read(bookingControllerProvider.notifier)
+          .createBooking(
+            artisanId: widget.artisan!.uid,
+            description: _descriptionController.text.trim(),
+            location: _locationController.text.trim(),
+          );
+      if (mounted) context.go(AppRoutes.bookingDetail, extra: bookingId);
+    } catch (error) {
+      if (mounted)
+        context.showSnack(error.toString().replaceFirst('Exception: ', ''));
+    }
   }
 
   @override
@@ -82,7 +101,9 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
             ),
           ),
           const SizedBox(height: 28),
-          PrimaryButton(text: 'Send Request', onPressed: _sendRequest),
+          ref.watch(bookingControllerProvider).isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : PrimaryButton(text: 'Send Request', onPressed: _sendRequest),
           const SizedBox(height: 12),
           Text(
             'The artisan will accept or decline before any work is scheduled.',
