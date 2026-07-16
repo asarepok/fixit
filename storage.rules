@@ -1,0 +1,27 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAdmin() {
+      return request.auth != null &&
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // ID/certificate photos from the Become an Artisan application. An ID
+    // document is sensitive, only the person who uploaded it and an admin
+    // reviewing it can read it back, nobody else, and it's never public.
+    match /verification_documents/{uid}/{fileName} {
+      allow read: if request.auth != null && (request.auth.uid == uid || isAdmin());
+      allow write: if request.auth != null && request.auth.uid == uid
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if false;
+    }
+
+    // Deny everything else by default, no other paths are in use yet.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
