@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/constants.dart';
 import '../../widgets/primary_button.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -11,199 +12,119 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
+  final _controller = PageController();
+  int _currentIndex = 0;
 
-  final PageController controller = PageController();
-
-  int currentIndex = 0;
-
-  final List<Map<String, String>> pages = [
-
-    {
-      "title":"Find Skilled Artisans",
-      "description":"Search verified plumbers, electricians, mechanics and many more."
-    },
-
-    {
-      "title":"Book Easily",
-      "description":"Request services in just a few taps from anywhere."
-    },
-
-    {
-      "title":"Reliable Service",
-      "description":"Rate artisans and build trust through reviews."
-    }
-
+  static const _pages = [
+    (
+      Icons.search_rounded,
+      'Find Skilled Artisans',
+      'Search verified plumbers, electricians, mechanics and many more.',
+    ),
+    (
+      Icons.home_outlined,
+      'Book Easily',
+      'Request services in just a few taps, from anywhere.',
+    ),
+    (
+      Icons.star_outline_rounded,
+      'Built on Trust',
+      'Choose skilled artisans and share your experience after every job.',
+    ),
   ];
 
   @override
-  Widget build(BuildContext context) {
-
-    return Scaffold(
-
-      body: SafeArea(
-
-        child: Column(
-
-          children: [
-
-            Expanded(
-
-              child: PageView.builder(
-
-                controller: controller,
-
-                onPageChanged: (value){
-
-                  setState(() {
-
-                    currentIndex=value;
-
-                  });
-
-                },
-
-                itemCount: pages.length,
-
-                itemBuilder: (_,index){
-
-                  return Padding(
-
-                    padding: const EdgeInsets.all(25),
-
-                    child: Column(
-
-                      mainAxisAlignment: MainAxisAlignment.center,
-
-                      children: [
-
-                        Icon(
-                          Icons.handyman,
-                          size: 150,
-                          color: Colors.blue.shade700,
-                        ),
-
-                        const SizedBox(height:40),
-
-                        Text(
-
-                          pages[index]["title"]!,
-
-                          textAlign: TextAlign.center,
-
-                          style: const TextStyle(
-
-                            fontSize:28,
-
-                            fontWeight: FontWeight.bold,
-
-                          ),
-
-                        ),
-
-                        const SizedBox(height:20),
-
-                        Text(
-
-                          pages[index]["description"]!,
-
-                          textAlign: TextAlign.center,
-
-                          style: const TextStyle(
-
-                            fontSize:17,
-
-                            color: Colors.grey,
-
-                          ),
-
-                        ),
-
-                      ],
-
-                    ),
-
-                  );
-
-                },
-
-              ),
-
-            ),
-
-            Row(
-
-              mainAxisAlignment: MainAxisAlignment.center,
-
-              children: List.generate(
-
-                pages.length,
-
-                (index)=>AnimatedContainer(
-
-                  duration: const Duration(milliseconds:300),
-
-                  margin: const EdgeInsets.all(4),
-
-                  height:10,
-
-                  width: currentIndex==index?25:10,
-
-                  decoration: BoxDecoration(
-
-                    color: currentIndex==index?Colors.blue:Colors.grey,
-
-                    borderRadius: BorderRadius.circular(20),
-
-                  ),
-
-                ),
-
-              ),
-
-            ),
-
-            Padding(
-
-              padding: const EdgeInsets.all(20),
-
-              child: PrimaryButton(
-
-                text: currentIndex==2?"Get Started":"Next",
-
-                onPressed: (){
-
-                  if(currentIndex==2){
-
-                    context.go('/login');
-
-                  }
-
-                  else{
-
-                    controller.nextPage(
-
-                      duration: const Duration(milliseconds:400),
-
-                      curve: Curves.ease,
-
-                    );
-
-                  }
-
-                },
-
-              ),
-
-            )
-
-          ],
-
-        ),
-
-      ),
-
-    );
-
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => context.go(AppRoutes.login),
+                  child: const Text('Sign in'),
+                ),
+              ),
+              Expanded(
+                child: PageView.builder(
+                  controller: _controller,
+                  itemCount: _pages.length,
+                  onPageChanged: (value) =>
+                      setState(() => _currentIndex = value),
+                  itemBuilder: (_, index) {
+                    final item = _pages[index];
+                    return Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          item.$1,
+                          size: 100,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(height: 34),
+                        Text(
+                          item.$2,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          item.$3,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(
+                  _pages.length,
+                  (index) => AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    width: index == _currentIndex ? 22 : 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: index == _currentIndex
+                          ? Theme.of(context).colorScheme.primary
+                          : Colors.grey,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              PrimaryButton(
+                text: _currentIndex == _pages.length - 1
+                    ? 'Get Started'
+                    : 'Next',
+                onPressed: () {
+                  if (_currentIndex == _pages.length - 1) {
+                    context.go(AppRoutes.register);
+                  } else {
+                    _controller.nextPage(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeOut,
+                    );
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
