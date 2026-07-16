@@ -39,6 +39,11 @@ final currentUserProfileProvider =
   return ref.watch(authRepositoryProvider).getCurrentUserProfile();
 });
 
+// Every account, for the admin Manage Users screen.
+final allUsersProvider = FutureProvider.autoDispose<List<UserModel>>((ref) {
+  return ref.watch(authRepositoryProvider).getAllUsers();
+});
+
 // Handles login, register, logout, and profile updates for the signed-in
 // user. A screen calls a method here to perform the action, and watches
 // ref.watch(authControllerProvider) to know if it is currently loading or

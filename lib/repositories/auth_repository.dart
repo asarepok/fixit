@@ -110,4 +110,13 @@ class AuthRepository {
       "longitude": longitude,
     });
   }
+
+  // Every account, for the admin Manage Users screen, no filtering.
+  Future<List<UserModel>> getAllUsers() async {
+    final docs = await _firestoreService.getCollectionOrdered(
+      _usersCollection,
+      orderBy: "name",
+    );
+    return docs.map(UserModel.fromMap).toList();
+  }
 }
