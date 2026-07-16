@@ -1,5 +1,9 @@
 import 'package:geolocator/geolocator.dart';
 
+// Wraps the device's GPS through the geolocator package. Handles checking
+// and requesting location permission before reading the current position.
+// Screens should not create this class directly, they should read it
+// through lib/providers/location_provider.dart instead.
 class LocationService {
 
   Future<Position> getCurrentLocation() async {
