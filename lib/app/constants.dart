@@ -41,6 +41,9 @@ class AppRoutes {
   static const artisanApplication = "/artisan-application";
   static const artisanApplicationStatus = "/artisan-application-status";
   static const rateArtisan = "/rate-artisan";
+  static const bookingDetail = "/booking-detail";
+  static const paymentWaiting = "/payment-waiting";
+  static const chatThread = "/chat-thread";
   static const map = "/map";
   static const adminDashboard = "/admin-dashboard";
 }
