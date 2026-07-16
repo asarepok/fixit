@@ -17,7 +17,7 @@ class FixItGHApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       title: "FixIt GH",
       theme: AppTheme.lightTheme,
-      darkTheme: ThemeData.dark(),
+      darkTheme: AppTheme.darkTheme,
       themeMode: ref.watch(themeProvider),
       routerConfig: appRouter,
     );

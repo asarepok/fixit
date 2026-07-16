@@ -37,6 +37,10 @@ class AppRoutes {
   static const nearbyArtisans = "/nearby-artisans";
   static const artisanProfile = "/artisan-profile";
   static const artisanDashboard = "/artisan-dashboard";
+  static const becomeArtisan = "/become-artisan";
+  static const artisanApplication = "/artisan-application";
+  static const artisanApplicationStatus = "/artisan-application-status";
+  static const rateArtisan = "/rate-artisan";
   static const map = "/map";
   static const adminDashboard = "/admin-dashboard";
 }

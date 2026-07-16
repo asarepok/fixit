@@ -48,16 +48,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
 
     try {
-      await ref.read(authControllerProvider.notifier).register(
+      await ref
+          .read(authControllerProvider.notifier)
+          .register(
             name: _nameController.text.trim(),
             email: _emailController.text.trim(),
             phone: _phoneController.text.trim(),
             password: _passwordController.text.trim(),
           );
 
-      if (mounted) context.go(AppRoutes.home);
+      if (mounted) {
+        context.go(AppRoutes.home);
+      }
     } catch (e) {
-      if (mounted) context.showSnack(e.toString().replaceFirst("Exception: ", ""));
+      if (mounted) {
+        context.showSnack(e.toString().replaceFirst("Exception: ", ""));
+      }
     }
   }
 
@@ -67,67 +73,69 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final isLoading = ref.watch(authControllerProvider).isLoading;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Create Account"),
-      ),
+      appBar: AppBar(title: const Text("Create Account")),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: ListView(
-            children: [
-              const SizedBox(height: 20),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(24, 30, 24, 24),
+          children: [
+            Text(
+              'Create your account',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Book reliable artisans in just a few taps.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 30),
 
-              TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: "Full Name",
-                  prefixIcon: Icon(Icons.person),
-                ),
-              ),
+            Text('FULL NAME', style: Theme.of(context).textTheme.labelLarge),
+            const SizedBox(height: 8),
 
-              const SizedBox(height: 20),
+            TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(hintText: 'Your full name'),
+            ),
 
-              TextField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: "Email",
-                  prefixIcon: Icon(Icons.email),
-                ),
-              ),
+            const SizedBox(height: 18),
+            Text('EMAIL', style: Theme.of(context).textTheme.labelLarge),
+            const SizedBox(height: 8),
 
-              const SizedBox(height: 20),
+            TextField(
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(hintText: 'you@example.com'),
+            ),
 
-              TextField(
-                controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: "Phone Number",
-                  prefixIcon: Icon(Icons.phone),
-                ),
-              ),
+            const SizedBox(height: 18),
+            Text('PHONE', style: Theme.of(context).textTheme.labelLarge),
+            const SizedBox(height: 8),
 
-              const SizedBox(height: 20),
+            TextField(
+              controller: _phoneController,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(hintText: '024 000 0000'),
+            ),
 
-              TextField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: "Password",
-                  prefixIcon: Icon(Icons.lock),
-                ),
-              ),
+            const SizedBox(height: 18),
+            Text('PASSWORD', style: Theme.of(context).textTheme.labelLarge),
+            const SizedBox(height: 8),
 
-              const SizedBox(height: 30),
+            TextField(
+              controller: _passwordController,
+              obscureText: true,
+              decoration: const InputDecoration(hintText: 'Create a password'),
+            ),
 
-              isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : PrimaryButton(
-                      text: "Continue",
-                      onPressed: registerUser,
-                    ),
-            ],
-          ),
+            const SizedBox(height: 28),
+
+            isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : PrimaryButton(
+                    text: "Create Account",
+                    onPressed: registerUser,
+                  ),
+          ],
         ),
       ),
     );
