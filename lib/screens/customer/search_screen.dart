@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/constants.dart';
 import '../../models/user_model.dart';
 import '../../providers/artisan_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../widgets/artisan_card.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
@@ -48,6 +49,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final artisans = ref.watch(artisansProvider);
+    final currentUser = ref.watch(currentUserProfileProvider).valueOrNull;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Search'),
@@ -97,7 +99,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             error: (error, stack) =>
                 const Center(child: Text('Unable to load artisans.')),
             data: (list) {
-              final results = _filtered(list);
+              final results = _filtered(
+                list,
+              ).where((artisan) => artisan.uid != currentUser?.uid).toList();
               if (!_nearestFirst) {
                 results.sort(
                   (a, b) =>

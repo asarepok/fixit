@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../app/constants.dart';
 import '../../app/theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/primary_button.dart';
 
 class ArtisanApplicationStatusScreen extends ConsumerWidget {
   const ArtisanApplicationStatusScreen({super.key});
@@ -11,7 +14,14 @@ class ArtisanApplicationStatusScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(currentUserProfileProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Application Status')),
+      appBar: AppBar(
+        title: const Text('Application Status'),
+        leading: IconButton(
+          tooltip: 'Back to profile',
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go(AppRoutes.profile),
+        ),
+      ),
       body: userAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(child: Text(error.toString())),
@@ -50,6 +60,11 @@ class ArtisanApplicationStatusScreen extends ConsumerWidget {
                           ? 'Your application was not approved. You can update it and apply again once the verification workflow is available.'
                           : "We'll notify you once an admin reviews your application. This usually takes 1–2 days.",
                       style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 24),
+                    PrimaryButton(
+                      text: 'Back to Profile',
+                      onPressed: () => context.go(AppRoutes.profile),
                     ),
                   ],
                 ),

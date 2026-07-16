@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/constants.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/app_mode_provider.dart';
 
 class ArtisanDashboardScreen extends ConsumerStatefulWidget {
   const ArtisanDashboardScreen({super.key});
@@ -36,7 +37,10 @@ class _ArtisanDashboardScreenState
         title: Text(_tab == 0 ? 'Artisan Dashboard' : _labels[_tab]),
         actions: [
           TextButton.icon(
-            onPressed: () => context.go(AppRoutes.home),
+            onPressed: () {
+              ref.read(appModeProvider.notifier).state = AppMode.customer;
+              context.go(AppRoutes.home);
+            },
             icon: const Icon(Icons.swap_horiz_rounded, color: Colors.white),
             label: const Text(
               'Customer',

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/constants.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/app_mode_provider.dart';
 import '../../utils/extensions.dart';
 import '../../utils/validators.dart';
 import '../../widgets/primary_button.dart';
@@ -46,6 +47,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       context.showSnack("Please fill all fields");
       return;
     }
+    if (!Validators.isValidEmail(_emailController.text)) {
+      context.showSnack('Enter a valid email address.');
+      return;
+    }
+    if (!Validators.isValidGhanaPhone(_phoneController.text)) {
+      context.showSnack('Enter a valid Ghana phone number, e.g. 024 555 0142.');
+      return;
+    }
+    if (_passwordController.text.length < 6) {
+      context.showSnack('Password must be at least 6 characters.');
+      return;
+    }
 
     try {
       await ref
@@ -58,6 +71,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           );
 
       if (mounted) {
+        ref.read(appModeProvider.notifier).state = AppMode.customer;
         context.go(AppRoutes.home);
       }
     } catch (e) {

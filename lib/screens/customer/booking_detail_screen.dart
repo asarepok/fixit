@@ -23,11 +23,12 @@ class BookingDetailScreen extends ConsumerWidget {
       final paymentId = await ref
           .read(paymentControllerProvider.notifier)
           .initiatePayment(booking.id);
-      if (context.mounted)
+      if (context.mounted) {
         context.push(
           AppRoutes.paymentWaiting,
           extra: PaymentWaitArgs(bookingId: booking.id, paymentId: paymentId),
         );
+      }
     } catch (error) {
       if (context.mounted) context.showSnack(error.toString());
     }
@@ -42,8 +43,9 @@ class BookingDetailScreen extends ConsumerWidget {
       await ref
           .read(paymentControllerProvider.notifier)
           .releaseEscrow(booking.id, booking.paymentId!);
-      if (context.mounted)
+      if (context.mounted) {
         context.showSnack('Payment released to the artisan.');
+      }
     } catch (error) {
       if (context.mounted) context.showSnack(error.toString());
     }
@@ -58,8 +60,9 @@ class BookingDetailScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(child: Text(error.toString())),
         data: (booking) {
-          if (booking == null)
+          if (booking == null) {
             return const Center(child: Text('Booking not found.'));
+          }
           final canContact =
               booking.status == BookingStatus.accepted ||
               booking.status == BookingStatus.inProgress;

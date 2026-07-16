@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/constants.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/app_mode_provider.dart';
 import '../../utils/extensions.dart';
+import '../../utils/validators.dart';
 import '../../widgets/primary_button.dart';
 
 // The login screen. Only draws the form and reacts to the result of
@@ -32,12 +34,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   // and looks up their role in Firestore. Every account opens Home except
   // admins, artisan mode is switched into from Home, not chosen here.
   Future<void> loginUser() async {
+    if (!Validators.isValidEmail(_emailController.text)) {
+      context.showSnack('Enter a valid email address.');
+      return;
+    }
+    if (_passwordController.text.isEmpty) {
+      context.showSnack('Enter your password.');
+      return;
+    }
     try {
       final role = await ref
           .read(authControllerProvider.notifier)
           .login(_emailController.text.trim(), _passwordController.text.trim());
 
       if (!mounted) return;
+      ref.read(appModeProvider.notifier).state = AppMode.customer;
 
       if (role == "admin") {
         context.go(AppRoutes.adminDashboard);

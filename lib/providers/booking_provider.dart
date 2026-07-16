@@ -17,7 +17,9 @@ final myBookingsProvider = FutureProvider.autoDispose<List<Booking>>((ref) {
 });
 
 // The artisan's "Requests" list: pending bookings waiting on them.
-final artisanRequestsProvider = FutureProvider.autoDispose<List<Booking>>((ref) {
+final artisanRequestsProvider = FutureProvider.autoDispose<List<Booking>>((
+  ref,
+) {
   final uid = ref.watch(authRepositoryProvider).currentUserId;
   if (uid == null) return Future.value(const []);
   return ref.watch(bookingRepositoryProvider).getArtisanRequests(uid);
@@ -36,8 +38,10 @@ final allBookingsProvider = FutureProvider.autoDispose<List<Booking>>((ref) {
 });
 
 // A single booking, for the Booking Detail screen, keyed by bookingId.
-final bookingProvider =
-    FutureProvider.autoDispose.family<Booking?, String>((ref, bookingId) {
+final bookingProvider = FutureProvider.autoDispose.family<Booking?, String>((
+  ref,
+  bookingId,
+) {
   return ref.watch(bookingRepositoryProvider).getBooking(bookingId);
 });
 
@@ -66,6 +70,9 @@ class BookingController extends AsyncNotifier<void> {
     state = const AsyncLoading();
     try {
       final customerId = ref.read(authRepositoryProvider).currentUserId!;
+      if (customerId == artisanId) {
+        throw Exception('You cannot book your own service.');
+      }
       final bookingRepo = ref.read(bookingRepositoryProvider);
 
       final bookingId = await bookingRepo.createBooking(
@@ -75,7 +82,9 @@ class BookingController extends AsyncNotifier<void> {
         location: location,
       );
 
-      final chatId = await ref.read(chatRepositoryProvider).getOrCreateChat(
+      final chatId = await ref
+          .read(chatRepositoryProvider)
+          .getOrCreateChat(
             customerId: customerId,
             artisanId: artisanId,
             bookingId: bookingId,
@@ -95,7 +104,9 @@ class BookingController extends AsyncNotifier<void> {
   Future<void> acceptBooking(String bookingId, double amount) async {
     state = const AsyncLoading();
     try {
-      await ref.read(bookingRepositoryProvider).acceptBooking(bookingId, amount);
+      await ref
+          .read(bookingRepositoryProvider)
+          .acceptBooking(bookingId, amount);
       ref.invalidate(bookingProvider(bookingId));
       _refreshLists();
       state = const AsyncData(null);

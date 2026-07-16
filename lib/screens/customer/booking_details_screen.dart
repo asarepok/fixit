@@ -46,10 +46,13 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
             description: _descriptionController.text.trim(),
             location: _locationController.text.trim(),
           );
-      if (mounted) context.go(AppRoutes.bookingDetail, extra: bookingId);
+      if (mounted) {
+        context.go(AppRoutes.bookingDetail, extra: bookingId);
+      }
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         context.showSnack(error.toString().replaceFirst('Exception: ', ''));
+      }
     }
   }
 

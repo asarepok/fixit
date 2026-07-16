@@ -23,6 +23,9 @@ class BookingRepository {
     required String description,
     required String location,
   }) async {
+    if (customerId == artisanId) {
+      throw Exception("You cannot book your own service.");
+    }
     final booking = Booking(
       id: "",
       customerId: customerId,
@@ -91,9 +94,11 @@ class BookingRepository {
     );
     return docs
         .map(Booking.fromMap)
-        .where((b) =>
-            b.status == BookingStatus.accepted ||
-            b.status == BookingStatus.inProgress)
+        .where(
+          (b) =>
+              b.status == BookingStatus.accepted ||
+              b.status == BookingStatus.inProgress,
+        )
         .toList();
   }
 
