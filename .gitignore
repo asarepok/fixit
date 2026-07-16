@@ -43,3 +43,13 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Cloud Functions: real secrets (MoMo API keys, service account files) and
+# local build output. functions/*.example files, if any, are NOT ignored.
+functions/node_modules/
+functions/lib/
+functions/.env
+functions/.env.*
+functions/.runtimeconfig.json
+**/serviceAccountKey*.json
+**/*-service-account*.json

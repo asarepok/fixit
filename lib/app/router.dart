@@ -10,7 +10,6 @@ import '../screens/auth/onboarding_screen.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
 import '../screens/auth/forgot_password_screen.dart';
-import '../screens/auth/role_selection_screen.dart';
 import '../screens/customer/main_navigation_screen.dart';
 import '../screens/customer/artisan_profile_screen.dart';
 import '../screens/customer/booking_details_screen.dart';
@@ -48,10 +47,6 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.profile,
       builder: (context, state) => const ProfileScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.roleSelection,
-      builder: (context, state) => const RoleSelectionScreen(),
     ),
     GoRoute(
       path: AppRoutes.artisanProfile,

@@ -30,9 +30,9 @@ final authStateProvider = StreamProvider((ref) {
 
 // The signed-in user's own profile as a UserModel. Watch this in any
 // screen that displays or depends on "my profile", for example the profile
-// screen and the role selection screen. Refreshes automatically when the
-// signed-in user changes, and can be refreshed manually with
-// ref.invalidate(currentUserProfileProvider) after an update.
+// screen. Refreshes automatically when the signed-in user changes, and can
+// be refreshed manually with ref.invalidate(currentUserProfileProvider)
+// after an update.
 final currentUserProfileProvider =
     FutureProvider.autoDispose<UserModel?>((ref) {
   ref.watch(authStateProvider);
@@ -48,8 +48,9 @@ class AuthController extends AsyncNotifier<void> {
   Future<void> build() async {}
 
   // Signs the user in, then looks up their role. Returns the role
-  // ("user", "artisan", or "admin") so the screen can decide which
-  // dashboard to open next.
+  // ("user" or "admin") so the screen can decide whether to open the admin
+  // dashboard, every other account opens Home, artisan mode is a switch
+  // from there, not a login-time destination.
   Future<String?> login(String email, String password) async {
     state = const AsyncLoading();
     try {
@@ -65,8 +66,8 @@ class AuthController extends AsyncNotifier<void> {
   }
 
   // Creates a new account and its user document. Used by the register
-  // screen. On success the new user has the default "user" role, so the
-  // app usually sends them to role selection next.
+  // screen. Every new account starts as a plain customer, Become an
+  // Artisan is a separate, later action, not part of signing up.
   Future<void> register({
     required String name,
     required String email,
@@ -90,17 +91,6 @@ class AuthController extends AsyncNotifier<void> {
 
   Future<void> logout() async {
     await ref.read(authRepositoryProvider).logout();
-  }
-
-  // Sets the signed-in user's role. Called from the role selection screen
-  // when a new user picks "customer" or "artisan".
-  Future<void> selectRole(String role) async {
-    final repo = ref.read(authRepositoryProvider);
-    final uid = repo.currentUserId;
-    if (uid == null) return;
-
-    await repo.updateUserRole(uid, role);
-    ref.invalidate(currentUserProfileProvider);
   }
 
   // Updates the signed-in user's name and phone number. Called from the

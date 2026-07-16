@@ -1,0 +1,129 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function unchanged(field) {
+      return request.resource.data[field] == resource.data[field];
+    }
+
+    // ---- users ----
+    // Any signed-in user can read a profile (needed to show artisan names,
+    // ratings, etc.). A user can only edit their own name/phone/location.
+    // role, artisanStatus, profession, bio, averageRating and ratingCount
+    // are never client-writable, those only change through admin review
+    // (Manage Artisans) or a review submission, both server-trusted paths.
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      allow create: if isSelf(uid);
+      allow update: if isSelf(uid)
+        && unchanged('role')
+        && unchanged('artisanStatus')
+        && unchanged('profession')
+        && unchanged('averageRating')
+        && unchanged('ratingCount')
+        || isAdmin();
+      allow delete: if false;
+    }
+
+    // ---- bookings ----
+    // Only the two people on a booking (or an admin) can read or touch it.
+    // paymentStatus is never client-writable, that field is only ever set
+    // by the Cloud Functions behind Payments & Escrow, using the Admin SDK,
+    // which ignores these rules entirely.
+    match /bookings/{bookingId} {
+      allow read: if isSignedIn() &&
+        (resource.data.customerId == request.auth.uid ||
+         resource.data.artisanId == request.auth.uid ||
+         isAdmin());
+
+      allow create: if isSignedIn() &&
+        request.resource.data.customerId == request.auth.uid &&
+        request.resource.data.status == 'pending';
+
+      allow update: if isSignedIn() && unchanged('paymentStatus') && (
+        // customer can only cancel, and only while still pending
+        (resource.data.customerId == request.auth.uid &&
+         resource.data.status == 'pending' &&
+         request.resource.data.status == 'cancelled') ||
+        // artisan drives every other transition on their own booking
+        (resource.data.artisanId == request.auth.uid) ||
+        isAdmin()
+      );
+
+      allow delete: if false;
+    }
+
+    // ---- reviews ----
+    // Public read (shown on artisan profiles). A customer can only review
+    // a booking that is actually theirs and actually completed, checked
+    // against the booking doc itself, not just trusted from the client.
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isSignedIn() &&
+        request.resource.data.customerId == request.auth.uid &&
+        get(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.customerId == request.auth.uid &&
+        get(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.status == 'completed';
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    // ---- chats & messages ----
+    // Only the two participants can see or send in a thread.
+    match /chats/{chatId} {
+      allow read, update: if isSignedIn() &&
+        (resource.data.customerId == request.auth.uid || resource.data.artisanId == request.auth.uid);
+      allow create: if isSignedIn() &&
+        (request.resource.data.customerId == request.auth.uid || request.resource.data.artisanId == request.auth.uid);
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if isSignedIn() &&
+          (get(/databases/$(database)/documents/chats/$(chatId)).data.customerId == request.auth.uid ||
+           get(/databases/$(database)/documents/chats/$(chatId)).data.artisanId == request.auth.uid);
+        allow create: if isSignedIn() &&
+          request.resource.data.senderId == request.auth.uid &&
+          (get(/databases/$(database)/documents/chats/$(chatId)).data.customerId == request.auth.uid ||
+           get(/databases/$(database)/documents/chats/$(chatId)).data.artisanId == request.auth.uid);
+        allow update, delete: if false;
+      }
+    }
+
+    // ---- verification_requests (Become an Artisan applications) ----
+    // An applicant can create and read their own request. Only admins can
+    // change its status, that's what approving/rejecting means.
+    match /verification_requests/{requestId} {
+      allow read: if isSignedIn() &&
+        (resource.data.artisanId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() &&
+        request.resource.data.artisanId == request.auth.uid &&
+        request.resource.data.status == 'pending';
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // ---- payments ----
+    // Written exclusively by Cloud Functions via the Admin SDK. The app
+    // only ever reads a payment's status, never writes one directly.
+    match /payments/{paymentId} {
+      allow read: if isSignedIn() &&
+        (resource.data.customerId == request.auth.uid ||
+         resource.data.artisanId == request.auth.uid ||
+         isAdmin());
+      allow write: if false;
+    }
+  }
+}

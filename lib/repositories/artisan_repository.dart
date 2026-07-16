@@ -21,12 +21,14 @@ class ArtisanRepository {
 
   ArtisanRepository(this._firestoreService);
 
-  // Every user with the "artisan" role, with no location filtering.
+  // Every user verified as an artisan, with no location filtering. Being
+  // an artisan is a capability any customer can apply for, not a separate
+  // role, so this filters on artisanStatus rather than role.
   Future<List<UserModel>> getArtisans() async {
     final docs = await _firestoreService.queryWhere(
       _usersCollection,
-      "role",
-      "artisan",
+      "artisanStatus",
+      "verified",
     );
 
     return docs.map(UserModel.fromMap).toList();

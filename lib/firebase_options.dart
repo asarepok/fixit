@@ -41,46 +41,48 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDMS8EfKEwtR_ZIFO4Zys-3bMDAYbdl8fo',
-    appId: '1:128712950329:web:608815345cd6125a5803e8',
-    messagingSenderId: '128712950329',
-    projectId: 'fixit-gh-app',
-    authDomain: 'fixit-gh-app.firebaseapp.com',
-    storageBucket: 'fixit-gh-app.firebasestorage.app',
+    apiKey: 'AIzaSyDIb07SnzF4FVp6aY-RejR8Ug4X_VjAfpw',
+    appId: '1:824519642335:web:99fab4b7946b265555ed6a',
+    messagingSenderId: '824519642335',
+    projectId: 'fixit-74c45',
+    authDomain: 'fixit-74c45.firebaseapp.com',
+    storageBucket: 'fixit-74c45.firebasestorage.app',
+    measurementId: 'G-ZRFZJPCYGJ',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDZHtzQsgKdMeMFROnOSo-TQ2oefrqpkLc',
-    appId: '1:128712950329:android:f5cb817d9549c8ba5803e8',
-    messagingSenderId: '128712950329',
-    projectId: 'fixit-gh-app',
-    storageBucket: 'fixit-gh-app.firebasestorage.app',
+    apiKey: 'AIzaSyDUiCauTg57hII21vjlmobUqEuruzugZ_I',
+    appId: '1:824519642335:android:ba1d04061cdd40ca55ed6a',
+    messagingSenderId: '824519642335',
+    projectId: 'fixit-74c45',
+    storageBucket: 'fixit-74c45.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAIhgvXci2D68XTqc47vc9FNX3zsAHmrqc',
-    appId: '1:128712950329:ios:4e1511ef100840575803e8',
-    messagingSenderId: '128712950329',
-    projectId: 'fixit-gh-app',
-    storageBucket: 'fixit-gh-app.firebasestorage.app',
+    apiKey: 'AIzaSyDulIAiBvX5plk-uYcJnz-ZbxcZqctnj8Q',
+    appId: '1:824519642335:ios:346d0b3a2bb1eff155ed6a',
+    messagingSenderId: '824519642335',
+    projectId: 'fixit-74c45',
+    storageBucket: 'fixit-74c45.firebasestorage.app',
+    iosClientId: '824519642335-1ubo5jbifs53jebv4ddpn06dqkg03cgs.apps.googleusercontent.com',
     iosBundleId: 'com.example.fixitGh',
   );
-
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyAIhgvXci2D68XTqc47vc9FNX3zsAHmrqc',
-    appId: '1:128712950329:ios:4e1511ef100840575803e8',
-    messagingSenderId: '128712950329',
-    projectId: 'fixit-gh-app',
-    storageBucket: 'fixit-gh-app.firebasestorage.app',
+    apiKey: 'AIzaSyDulIAiBvX5plk-uYcJnz-ZbxcZqctnj8Q',
+    appId: '1:824519642335:ios:346d0b3a2bb1eff155ed6a',
+    messagingSenderId: '824519642335',
+    projectId: 'fixit-74c45',
+    storageBucket: 'fixit-74c45.firebasestorage.app',
+    iosClientId: '824519642335-1ubo5jbifs53jebv4ddpn06dqkg03cgs.apps.googleusercontent.com',
     iosBundleId: 'com.example.fixitGh',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyDMS8EfKEwtR_ZIFO4Zys-3bMDAYbdl8fo',
-    appId: '1:128712950329:web:7cf32b7522c2395f5803e8',
-    messagingSenderId: '128712950329',
-    projectId: 'fixit-gh-app',
-    authDomain: 'fixit-gh-app.firebaseapp.com',
-    storageBucket: 'fixit-gh-app.firebasestorage.app',
+    apiKey: 'AIzaSyDIb07SnzF4FVp6aY-RejR8Ug4X_VjAfpw',
+    appId: '1:824519642335:web:9bc9fccde31d1d9555ed6a',
+    messagingSenderId: '824519642335',
+    projectId: 'fixit-74c45',
+    authDomain: 'fixit-74c45.firebaseapp.com',
+    storageBucket: 'fixit-74c45.firebasestorage.app',
+    measurementId: 'G-5W6NS5LG5Y',
   );
 }

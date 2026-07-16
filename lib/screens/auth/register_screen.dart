@@ -35,8 +35,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   // Checks the fields are filled in, then calls AuthController.register,
   // which creates the Firebase Auth account and the user's Firestore
-  // document. On success, sends the user to role selection to pick
-  // customer or artisan.
+  // document. Every new account is a plain customer, Become an Artisan is
+  // a separate action reachable later from Home/Profile, not part of
+  // signing up.
   Future<void> registerUser() async {
     if (Validators.isEmpty(_nameController.text) ||
         Validators.isEmpty(_emailController.text) ||
@@ -54,7 +55,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             password: _passwordController.text.trim(),
           );
 
-      if (mounted) context.push(AppRoutes.roleSelection);
+      if (mounted) context.go(AppRoutes.home);
     } catch (e) {
       if (mounted) context.showSnack(e.toString().replaceFirst("Exception: ", ""));
     }

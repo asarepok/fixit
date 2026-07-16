@@ -78,19 +78,12 @@ class AuthRepository {
     return UserModel.fromMap(data);
   }
 
-  // Reads a user's role by uid. Used right after login to decide which
-  // screen to open (customer home, artisan dashboard, or admin dashboard).
+  // Reads a user's role by uid. Used right after login to decide whether
+  // to open the admin dashboard, every other account just opens Home,
+  // artisan mode is switched into from there, not chosen at login.
   Future<String?> getUserRole(String uid) async {
     final data = await _firestoreService.getDocument(_usersCollection, uid);
     return data?["role"] as String?;
-  }
-
-  // Sets a user's role. Called from the role selection screen once a new
-  // user picks "customer" or "artisan".
-  Future<void> updateUserRole(String uid, String role) async {
-    await _firestoreService.updateDocument(_usersCollection, uid, {
-      "role": role,
-    });
   }
 
   // Updates a user's name and phone number, for the edit profile screen.

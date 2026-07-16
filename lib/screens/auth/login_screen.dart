@@ -8,8 +8,8 @@ import '../../utils/extensions.dart';
 import '../../widgets/primary_button.dart';
 
 // The login screen. Only draws the form and reacts to the result of
-// signing in, it does not call Firebase itself. Signing in and deciding
-// the user's role both happen in AuthController (lib/providers/auth_provider.dart).
+// signing in, it does not call Firebase itself. Signing in and looking up
+// the role both happen in AuthController (lib/providers/auth_provider.dart).
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -29,8 +29,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   // Calls AuthController.login, which signs the user in with Firebase Auth
-  // and looks up their role in Firestore. This screen only decides which
-  // route to open for each role, it never touches Firebase directly.
+  // and looks up their role in Firestore. Every account opens Home except
+  // admins, artisan mode is switched into from Home, not chosen here.
   Future<void> loginUser() async {
     try {
       final role = await ref.read(authControllerProvider.notifier).login(
@@ -40,9 +40,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
       if (!mounted) return;
 
-      if (role == "artisan") {
-        context.go(AppRoutes.artisanDashboard);
-      } else if (role == "admin") {
+      if (role == "admin") {
         context.go(AppRoutes.adminDashboard);
       } else {
         context.go(AppRoutes.home);

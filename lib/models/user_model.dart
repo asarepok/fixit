@@ -1,7 +1,13 @@
 // Represents a user document stored in the Firestore "users" collection.
-// Covers customers, artisans, and admins, the role field tells them apart.
-// latitude/longitude are optional since a user may not have shared their
-// location yet.
+// Every account is a customer by default, role only ever distinguishes a
+// plain account ("user") from an admin ("admin"), admin accounts are
+// provisioned outside the app, never self-serve.
+//
+// Being an artisan is an added capability, not a separate role: artisanStatus
+// tracks the Become an Artisan application ("none", "pending", "verified",
+// "rejected"), profession/bio/averageRating/ratingCount only mean something
+// once artisanStatus is "verified". latitude/longitude are optional since a
+// user may not have shared their location yet.
 class UserModel {
 
   final String uid;
@@ -17,6 +23,16 @@ class UserModel {
   final double? latitude;
 
   final double? longitude;
+
+  final String artisanStatus;
+
+  final String? profession;
+
+  final String? bio;
+
+  final double? averageRating;
+
+  final int? ratingCount;
 
 
 
@@ -36,15 +52,27 @@ class UserModel {
 
     this.longitude,
 
+    this.artisanStatus = "none",
+
+    this.profession,
+
+    this.bio,
+
+    this.averageRating,
+
+    this.ratingCount,
+
   });
 
 
 
-  // Use these to check a user's role, for example to decide which screen to
-  // navigate to, or to gate an admin-only widget like AdminGuard.
+  // Use these to check a user's capabilities, for example to decide which
+  // screen to navigate to, or to gate an admin-only widget like AdminGuard.
   bool get isAdmin => role == "admin";
 
-  bool get isArtisan => role == "artisan";
+  bool get isArtisan => artisanStatus == "verified";
+
+  bool get hasPendingArtisanApplication => artisanStatus == "pending";
 
 
 
@@ -68,6 +96,16 @@ class UserModel {
       latitude: (map["latitude"] as num?)?.toDouble(),
 
       longitude: (map["longitude"] as num?)?.toDouble(),
+
+      artisanStatus: map["artisanStatus"] as String? ?? "none",
+
+      profession: map["profession"] as String?,
+
+      bio: map["bio"] as String?,
+
+      averageRating: (map["averageRating"] as num?)?.toDouble(),
+
+      ratingCount: (map["ratingCount"] as num?)?.toInt(),
 
     );
 
@@ -93,6 +131,16 @@ class UserModel {
       "latitude":latitude,
 
       "longitude":longitude,
+
+      "artisanStatus":artisanStatus,
+
+      "profession":profession,
+
+      "bio":bio,
+
+      "averageRating":averageRating,
+
+      "ratingCount":ratingCount,
 
     };
 

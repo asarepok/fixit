@@ -25,7 +25,6 @@ class AppRoutes {
   static const login = "/login";
   static const register = "/register";
   static const forgotPassword = "/forgot-password";
-  static const roleSelection = "/role-selection";
   static const home = "/home";
   static const search = "/search";
   static const booking = "/booking";
