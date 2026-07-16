@@ -22,20 +22,28 @@ service cloud.firestore {
 
     // ---- users ----
     // Any signed-in user can read a profile (needed to show artisan names,
-    // ratings, etc.). A user can only edit their own name/phone/location.
-    // role, artisanStatus, profession, bio, averageRating and ratingCount
-    // are never client-writable, those only change through admin review
-    // (Manage Artisans) or a review submission, both server-trusted paths.
+    // ratings, etc.). A user can edit their own name/phone/location/
+    // profession/bio freely. role and the rating aggregates are never
+    // client-writable, only an admin (or, for ratings, the submitReview
+    // Cloud Function via the Admin SDK) can change those. artisanStatus is
+    // a one-way exception: a user may flip their own from "none" to
+    // "pending" (that's what submitting a Become an Artisan application
+    // is), anything past that (to "verified"/"rejected") is admin-only.
+    function isSubmittingArtisanApplication() {
+      return (!('artisanStatus' in resource.data) || resource.data.artisanStatus == 'none')
+        && request.resource.data.artisanStatus == 'pending';
+    }
+
     match /users/{uid} {
       allow read: if isSignedIn();
       allow create: if isSelf(uid);
-      allow update: if isSelf(uid)
-        && unchanged('role')
-        && unchanged('artisanStatus')
-        && unchanged('profession')
-        && unchanged('averageRating')
-        && unchanged('ratingCount')
-        || isAdmin();
+      allow update: if isAdmin() || (
+        isSelf(uid) &&
+        unchanged('role') &&
+        unchanged('averageRating') &&
+        unchanged('ratingCount') &&
+        (unchanged('artisanStatus') || isSubmittingArtisanApplication())
+      );
       allow delete: if false;
     }
 
@@ -55,10 +63,14 @@ service cloud.firestore {
         request.resource.data.status == 'pending';
 
       allow update: if isSignedIn() && unchanged('paymentStatus') && (
-        // customer can only cancel, and only while still pending
-        (resource.data.customerId == request.auth.uid &&
-         resource.data.status == 'pending' &&
-         request.resource.data.status == 'cancelled') ||
+        (resource.data.customerId == request.auth.uid && (
+          // cancel, only while still pending
+          (resource.data.status == 'pending' && request.resource.data.status == 'cancelled') ||
+          // attaching the chat id right after creating the booking,
+          // nothing else about the booking changes in that same write
+          (unchanged('status') && unchanged('artisanId') && unchanged('description') &&
+           unchanged('location') && unchanged('amount'))
+        )) ||
         // artisan drives every other transition on their own booking
         (resource.data.artisanId == request.auth.uid) ||
         isAdmin()
