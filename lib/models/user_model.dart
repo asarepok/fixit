@@ -1,14 +1,20 @@
 class UserModel {
 
-  final String id;
+  final String uid;
+
   final String name;
+
   final String email;
+
   final String role;
+
+  final String phone;
+
 
 
   UserModel({
 
-    required this.id,
+    required this.uid,
 
     required this.name,
 
@@ -16,9 +22,29 @@ class UserModel {
 
     required this.role,
 
+    required this.phone,
+
   });
 
 
-  bool get isAdmin => role == "admin";
+
+  Map<String,dynamic> toMap(){
+
+    return {
+
+      "uid":uid,
+
+      "name":name,
+
+      "email":email,
+
+      "role":role,
+      
+      "phone":phone,
+
+    };
+
+  }
+
 
 }

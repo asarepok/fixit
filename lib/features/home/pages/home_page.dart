@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../widgets/home_header.dart';
 import '../widgets/service_category_card.dart';
@@ -62,6 +63,25 @@ class HomePage extends StatelessWidget {
                 ),
 
               ),
+
+
+              const SizedBox(height:20),
+
+
+              ElevatedButton(
+
+                onPressed: (){
+
+                  context.push('/nearby-artisans');
+
+                },
+
+                child: const Text(
+                  "Find Nearby Artisans",
+                ),
+
+              ),
+
 
 
               const SizedBox(height:30),

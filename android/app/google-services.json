@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "128712950329",
+    "project_id": "fixit-gh-app",
+    "storage_bucket": "fixit-gh-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:128712950329:android:f5cb817d9549c8ba5803e8",
+        "android_client_info": {
+          "package_name": "com.example.fixit_gh"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDZHtzQsgKdMeMFROnOSo-TQ2oefrqpkLc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
