@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/constants.dart';
 import '../../providers/artisan_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/app_mode_provider.dart';
 import '../../widgets/artisan_card.dart';
 import '../../widgets/service_category_card.dart';
 
@@ -15,6 +16,7 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProfileProvider).valueOrNull;
     final artisans = ref.watch(artisansProvider);
+    final mode = ref.watch(appModeProvider);
     final nameParts = user?.name.trim().split(RegExp(r'\s+')) ?? const [];
     final greetingName = nameParts.isEmpty || nameParts.first.isEmpty
         ? 'there'
@@ -47,9 +49,17 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   if (user?.isArtisan == true)
                     OutlinedButton.icon(
-                      onPressed: () => context.push(AppRoutes.artisanDashboard),
+                      onPressed: () {
+                        ref.read(appModeProvider.notifier).state =
+                            AppMode.artisan;
+                        context.go(AppRoutes.artisanDashboard);
+                      },
                       icon: const Icon(Icons.swap_horiz_rounded, size: 18),
-                      label: const Text('Artisan'),
+                      label: Text(
+                        mode == AppMode.artisan
+                            ? 'Artisan mode'
+                            : 'Switch to Artisan',
+                      ),
                     ),
                 ],
               ),
@@ -128,6 +138,7 @@ class HomeScreen extends ConsumerWidget {
                       )
                     : Column(
                         children: list
+                            .where((artisan) => artisan.uid != user?.uid)
                             .take(4)
                             .map(
                               (artisan) => ArtisanCard(

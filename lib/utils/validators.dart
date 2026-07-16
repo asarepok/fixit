@@ -13,4 +13,10 @@ class Validators {
   static bool isValidEmail(String value) {
     return RegExp(r"^[^@\s]+@[^@\s]+\.[^@\s]+$").hasMatch(value.trim());
   }
+
+  static bool isValidGhanaPhone(String value) {
+    return RegExp(
+      r'^(?:0\d{9}|\+233\d{9})$',
+    ).hasMatch(value.replaceAll(RegExp(r'[\s-]'), ''));
+  }
 }

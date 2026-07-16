@@ -25,6 +25,7 @@ import '../screens/onboarding/artisan_application_screen.dart';
 import '../screens/onboarding/artisan_application_status_screen.dart';
 import '../screens/onboarding/become_artisan_screen.dart';
 import '../screens/admin/admin_dashboard_screen.dart';
+import '../screens/admin/manage_payments_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/maps/map_screen.dart';
 import '../screens/chat/chat_thread_screen.dart';
@@ -86,6 +87,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.adminDashboard,
       builder: (context, state) => const AdminDashboardScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.managePayments,
+      builder: (context, state) => const ManagePaymentsScreen(),
     ),
     GoRoute(
       path: AppRoutes.settings,

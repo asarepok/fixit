@@ -1,44 +1,105 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ManageArtisansScreen extends StatelessWidget {
+import '../../providers/verification_provider.dart';
+import '../../utils/extensions.dart';
+
+class ManageArtisansScreen extends ConsumerWidget {
   const ManageArtisansScreen({super.key});
-  @override
-  Widget build(BuildContext context) => const AdminEmptyScreen(
-    title: 'Manage Artisans',
-    icon: Icons.handyman_outlined,
-    message: 'Pending applications will appear here for review.',
-  );
-}
+  Future<void> _review(
+    BuildContext context,
+    WidgetRef ref, {
+    required String requestId,
+    required String artisanId,
+    required bool approved,
+  }) async {
+    try {
+      await ref
+          .read(verificationControllerProvider.notifier)
+          .reviewApplication(
+            requestId: requestId,
+            artisanId: artisanId,
+            approved: approved,
+          );
+      if (context.mounted) {
+        context.showSnack(
+          approved ? 'Artisan approved.' : 'Application declined.',
+        );
+      }
+    } catch (error) {
+      if (context.mounted) context.showSnack(error.toString());
+    }
+  }
 
-class AdminEmptyScreen extends StatelessWidget {
-  const AdminEmptyScreen({
-    super.key,
-    required this.title,
-    required this.icon,
-    required this.message,
-  });
-  final String title;
-  final IconData icon;
-  final String message;
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(title)),
-    body: Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 64, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ],
-        ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final applications = ref.watch(pendingApplicationsProvider);
+    final loading = ref.watch(verificationControllerProvider).isLoading;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Manage Artisans')),
+      body: applications.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(child: Text(error.toString())),
+        data: (items) => items.isEmpty
+            ? const Center(child: Text('No applications awaiting review.'))
+            : ListView.builder(
+                padding: const EdgeInsets.all(20),
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  return Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.profession,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(item.bio),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: loading
+                                      ? null
+                                      : () => _review(
+                                          context,
+                                          ref,
+                                          requestId: item.id,
+                                          artisanId: item.artisanId,
+                                          approved: false,
+                                        ),
+                                  child: const Text('Decline'),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: loading
+                                      ? null
+                                      : () => _review(
+                                          context,
+                                          ref,
+                                          requestId: item.id,
+                                          artisanId: item.artisanId,
+                                          approved: true,
+                                        ),
+                                  child: const Text('Approve'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
       ),
-    ),
-  );
+    );
+  }
 }

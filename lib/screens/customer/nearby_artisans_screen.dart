@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/constants.dart';
 import '../../providers/artisan_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../widgets/artisan_card.dart';
 
 // Lists artisans sorted by distance from the device. All the location
@@ -16,6 +17,7 @@ class NearbyArtisansScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final nearbyAsync = ref.watch(nearbyArtisansProvider);
+    final currentUser = ref.watch(currentUserProfileProvider).valueOrNull;
 
     return Scaffold(
       appBar: AppBar(
@@ -35,15 +37,18 @@ class NearbyArtisansScreen extends ConsumerWidget {
         error: (error, stack) =>
             const Center(child: Text("No artisans nearby")),
         data: (nearby) {
-          if (nearby.isEmpty) {
+          final available = nearby
+              .where((entry) => entry.artisan.uid != currentUser?.uid)
+              .toList();
+          if (available.isEmpty) {
             return const Center(child: Text("No artisans nearby"));
           }
 
           return ListView.builder(
             padding: const EdgeInsets.all(20),
-            itemCount: nearby.length,
+            itemCount: available.length,
             itemBuilder: (context, index) {
-              final entry = nearby[index];
+              final entry = available[index];
 
               return ArtisanCard(
                 artisan: entry.artisan,

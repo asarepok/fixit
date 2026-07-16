@@ -46,4 +46,5 @@ class AppRoutes {
   static const chatThread = "/chat-thread";
   static const map = "/map";
   static const adminDashboard = "/admin-dashboard";
+  static const managePayments = "/manage-payments";
 }

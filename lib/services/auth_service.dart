@@ -4,11 +4,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 // not know about Firestore, UserModel, or any app-specific rule, that lives
 // in lib/repositories/auth_repository.dart, which calls this class.
 //
-// register() and login() catch FirebaseAuthException and rethrow a plain
-// Exception with the same message. This means every caller, repositories,
-// providers, and screens, only ever needs to catch a normal Exception and
-// never needs to import firebase_auth. Only files under lib/services/
-// should import firebase_auth or cloud_firestore.
+// register() and login() turn FirebaseAuthException into safe, plain
+// Exception messages. Authentication failures do not reveal whether an
+// account or email address exists, and screens never import firebase_auth.
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -25,7 +23,7 @@ class AuthService {
 
       return result.user;
     } on FirebaseAuthException catch (e) {
-      throw Exception(e.message ?? "Registration failed");
+      throw Exception(_messageFor(e, isRegistration: true));
     }
   }
 
@@ -38,11 +36,37 @@ class AuthService {
 
       return result.user;
     } on FirebaseAuthException catch (e) {
-      throw Exception(e.message ?? "Login failed");
+      throw Exception(_messageFor(e));
     }
   }
 
   Future<void> logout() async {
     await _auth.signOut();
+  }
+
+  String _messageFor(
+    FirebaseAuthException error, {
+    bool isRegistration = false,
+  }) {
+    switch (error.code) {
+      case 'invalid-email':
+        return 'Enter a valid email address.';
+      case 'invalid-credential':
+      case 'wrong-password':
+      case 'user-not-found':
+        return 'Email or password is incorrect.';
+      case 'email-already-in-use':
+        return 'Unable to create an account with these details.';
+      case 'weak-password':
+        return 'Password must be at least 6 characters.';
+      case 'too-many-requests':
+        return 'Too many attempts. Please try again later.';
+      case 'network-request-failed':
+        return 'Check your internet connection and try again.';
+      default:
+        return isRegistration
+            ? 'Unable to create an account. Please try again.'
+            : 'Unable to sign in. Please try again.';
+    }
   }
 }

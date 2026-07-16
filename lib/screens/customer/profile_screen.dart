@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/constants.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/app_mode_provider.dart';
 import '../../providers/location_provider.dart';
 import '../../utils/extensions.dart';
 
@@ -26,12 +27,14 @@ class ProfileScreen extends ConsumerWidget {
 
   Future<void> _logout(BuildContext context, WidgetRef ref) async {
     await ref.read(authControllerProvider.notifier).logout();
+    ref.read(appModeProvider.notifier).state = AppMode.customer;
     if (context.mounted) context.go(AppRoutes.login);
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(currentUserProfileProvider);
+    final mode = ref.watch(appModeProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
       body: userAsync.when(
@@ -113,9 +116,19 @@ class ProfileScreen extends ConsumerWidget {
               if (user.isArtisan)
                 _ProfileOption(
                   icon: Icons.swap_horiz_rounded,
-                  title: 'Switch to Artisan Mode',
+                  title: mode == AppMode.artisan
+                      ? 'Switch to Customer Mode'
+                      : 'Switch to Artisan Mode',
                   highlighted: true,
-                  onTap: () => context.push(AppRoutes.artisanDashboard),
+                  onTap: () {
+                    final artisanMode = mode != AppMode.artisan;
+                    ref.read(appModeProvider.notifier).state = artisanMode
+                        ? AppMode.artisan
+                        : AppMode.customer;
+                    context.go(
+                      artisanMode ? AppRoutes.artisanDashboard : AppRoutes.home,
+                    );
+                  },
                 )
               else
                 _ProfileOption(
