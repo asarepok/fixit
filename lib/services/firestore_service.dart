@@ -45,6 +45,28 @@ class FirestoreService {
     return snapshot.docs.map((doc) => doc.data()).toList();
   }
 
+  // Same idea as queryWhereOrdered, but with two equality filters. Needed
+  // when a security rule checks a field the query itself isn't already
+  // filtering on, Firestore rejects a list query unless its own filters
+  // already prove every result satisfies the rule, see ChatRepository.
+  Future<List<Map<String, dynamic>>> queryWhereTwo(
+    String collection,
+    String field1,
+    Object? isEqualTo1,
+    String field2,
+    Object? isEqualTo2,
+  ) async {
+    final snapshot = await _firestore
+        .collection(collection)
+        .where(field1, isEqualTo: isEqualTo1)
+        .where(field2, isEqualTo: isEqualTo2)
+        .get();
+
+    return snapshot.docs
+        .map((doc) => {...doc.data(), "id": doc.id})
+        .toList();
+  }
+
   // Adds a new document with a Firestore-generated id. Use this for
   // collections like bookings, reviews, and chats where nothing needs to
   // know the id before it's created. Also works for a subcollection, pass

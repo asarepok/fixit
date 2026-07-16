@@ -44,6 +44,13 @@ final allUsersProvider = FutureProvider.autoDispose<List<UserModel>>((ref) {
   return ref.watch(authRepositoryProvider).getAllUsers();
 });
 
+// A single user by uid, for admin screens showing a name next to a
+// customer/artisan/applicant id, keyed by that uid.
+final userByIdProvider =
+    FutureProvider.autoDispose.family<UserModel?, String>((ref, uid) {
+  return ref.watch(authRepositoryProvider).getUserById(uid);
+});
+
 // Handles login, register, logout, and profile updates for the signed-in
 // user. A screen calls a method here to perform the action, and watches
 // ref.watch(authControllerProvider) to know if it is currently loading or

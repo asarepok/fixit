@@ -119,4 +119,13 @@ class AuthRepository {
     );
     return docs.map(UserModel.fromMap).toList();
   }
+
+  // A single user by uid, for admin screens that only have an id on hand,
+  // for example a booking's customerId/artisanId or an application's
+  // artisanId, and need to show a name instead.
+  Future<UserModel?> getUserById(String uid) async {
+    final data = await _firestoreService.getDocument(_usersCollection, uid);
+    if (data == null) return null;
+    return UserModel.fromMap(data);
+  }
 }

@@ -20,10 +20,12 @@ class ChatRepository {
     required String artisanId,
     required String bookingId,
   }) async {
-    final existing = await _firestoreService.queryWhereOrdered(
+    final existing = await _firestoreService.queryWhereTwo(
       _chatsCollection,
       "bookingId",
       bookingId,
+      "customerId",
+      customerId,
     );
 
     if (existing.isNotEmpty) {
