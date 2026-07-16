@@ -58,6 +58,15 @@ class BookingController extends AsyncNotifier<void> {
     ref.invalidate(allBookingsProvider);
   }
 
+  // Remembers the id of a booking create that's still in progress or
+  // failed partway, keyed by what was actually requested. If the same
+  // request comes through again (the customer retrying after an error, or
+  // a double tap) before the first attempt finished, this resumes that
+  // same booking instead of creating a duplicate. Cleared once a create
+  // actually succeeds.
+  String? _pendingKey;
+  String? _pendingBookingId;
+
   // Creates the booking, then a chat thread for it, then attaches the
   // thread's id back onto the booking. A chat needs the booking's id to
   // exist first, so this can't all happen in one write, see
@@ -75,7 +84,15 @@ class BookingController extends AsyncNotifier<void> {
       }
       final bookingRepo = ref.read(bookingRepositoryProvider);
 
-      final bookingId = await bookingRepo.createBooking(
+      final key = '$customerId|$artisanId|$description|$location';
+      final bookingId = (key == _pendingKey && _pendingBookingId != null)
+          ? _pendingBookingId!
+          : bookingRepo.newBookingId();
+      _pendingKey = key;
+      _pendingBookingId = bookingId;
+
+      await bookingRepo.createBooking(
+        bookingId: bookingId,
         customerId: customerId,
         artisanId: artisanId,
         description: description,
@@ -91,6 +108,9 @@ class BookingController extends AsyncNotifier<void> {
           );
 
       await bookingRepo.attachChatId(bookingId, chatId);
+
+      _pendingKey = null;
+      _pendingBookingId = null;
 
       _refreshLists();
       state = const AsyncData(null);

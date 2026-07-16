@@ -13,11 +13,21 @@ class BookingRepository {
 
   BookingRepository(this._firestoreService);
 
-  // Creates a new booking, always starting as pending, with no chat yet.
-  // A chat thread needs this booking's id to exist, so BookingController
-  // creates the booking first, then the chat, then calls attachChatId
-  // below, rather than trying to create both at once.
-  Future<String> createBooking({
+  // A fresh id for a new booking, chosen before any write happens. Letting
+  // BookingController hold onto this id across a retry (instead of getting
+  // handed a brand new one from addDocument each time) is what makes
+  // creating a booking idempotent, see BookingController.createBooking.
+  String newBookingId() => _firestoreService.newId(_bookingsCollection);
+
+  // Creates a new booking at the given id, always starting as pending,
+  // with no chat yet. A chat thread needs this booking's id to exist, so
+  // BookingController creates the booking first, then the chat, then calls
+  // attachChatId below, rather than trying to create both at once. Using
+  // setDocument rather than addDocument means calling this again with the
+  // same bookingId (a retry after a failure partway through) just
+  // overwrites the same booking instead of creating a duplicate.
+  Future<void> createBooking({
+    required String bookingId,
     required String customerId,
     required String artisanId,
     required String description,
@@ -27,7 +37,7 @@ class BookingRepository {
       throw Exception("You cannot book your own service.");
     }
     final booking = Booking(
-      id: "",
+      id: bookingId,
       customerId: customerId,
       artisanId: artisanId,
       description: description,
@@ -38,7 +48,7 @@ class BookingRepository {
     final data = booking.toCreateMap();
     data["createdAt"] = DateTime.now().toUtc();
 
-    return _firestoreService.addDocument(_bookingsCollection, data);
+    await _firestoreService.setDocument(_bookingsCollection, bookingId, data);
   }
 
   Future<void> attachChatId(String bookingId, String chatId) async {

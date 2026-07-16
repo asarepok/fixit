@@ -8,6 +8,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  // A fresh document id for a collection, generated locally with no
+  // network call. Lets a caller pick a document's id ahead of time (then
+  // write it with setDocument) instead of letting addDocument choose one,
+  // useful for making a multi-step create resumable, see BookingRepository.
+  String newId(String collection) => _firestore.collection(collection).doc().id;
+
   Future<void> setDocument(
     String collection,
     String id,
