@@ -1,26 +1,20 @@
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
-import {
-  momoCollectionApiKey,
-  momoCollectionApiUser,
-  momoCollectionSubscriptionKey,
-} from "../momo/config";
-import {requestToPay} from "../momo/client";
+import {paystackSecretKey} from "../paystack/config";
+import {initializeTransaction} from "../paystack/client";
 
 const db = () => admin.firestore();
 
-/** Called from the "Pay with MoMo" screen once a booking has been
- * accepted with a quote. Creates the payment record and kicks off the
- * MoMo collection request, the customer approves it on their own phone,
- * the "Confirm on Your Phone" screen then polls checkMomoPaymentStatus. */
-export const initiateMomoPayment = onCall(
-  {
-    secrets: [
-      momoCollectionSubscriptionKey,
-      momoCollectionApiUser,
-      momoCollectionApiKey,
-    ],
-  },
+/** Called from the "Pay with Paystack" screen once a booking has been
+ * accepted with a quote. Creates the payment record and starts a Paystack
+ * transaction, returning the authorization URL, Paystack's hosted
+ * checkout page, which the app opens in a plain webview so every channel
+ * (mobile money, card, ...) is available. The "Confirm Payment" screen
+ * then calls checkPaystackPaymentStatus once the webview redirects back,
+ * which is the only thing that ever trusts a charge actually went
+ * through. */
+export const initiatePaystackPayment = onCall(
+  {secrets: [paystackSecretKey]},
   async (request) => {
     const uid = request.auth?.uid;
     if (!uid) {
@@ -55,26 +49,21 @@ export const initiateMomoPayment = onCall(
     }
 
     const customer = (await db().collection("users").doc(uid).get()).data();
-    const phoneNumber = customer?.phone;
-    if (!phoneNumber) {
+    const email = customer?.email;
+    if (!email) {
       throw new HttpsError(
         "failed-precondition",
-        "No phone number on file for this account."
+        "No email on file for this account."
       );
     }
 
     const paymentRef = db().collection("payments").doc();
 
-    const referenceId = await requestToPay({
+    const {authorizationUrl, reference} = await initializeTransaction({
       amount: booking.amount,
-      phoneNumber,
-      externalId: paymentRef.id,
-      payerMessage: `FixIt GH booking ${bookingId}`,
-      creds: {
-        subscriptionKey: momoCollectionSubscriptionKey.value(),
-        apiUser: momoCollectionApiUser.value(),
-        apiKey: momoCollectionApiKey.value(),
-      },
+      email,
+      reference: paymentRef.id,
+      secretKey: paystackSecretKey.value(),
     });
 
     await paymentRef.set({
@@ -83,7 +72,7 @@ export const initiateMomoPayment = onCall(
       artisanId: booking.artisanId,
       amount: booking.amount,
       status: "pending",
-      momoReferenceId: referenceId,
+      paystackReference: reference,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
@@ -92,6 +81,6 @@ export const initiateMomoPayment = onCall(
       paymentId: paymentRef.id,
     });
 
-    return {paymentId: paymentRef.id};
+    return {paymentId: paymentRef.id, authorizationUrl};
   }
 );

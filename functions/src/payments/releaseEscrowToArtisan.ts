@@ -1,26 +1,20 @@
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
-import {
-  momoDisbursementApiKey,
-  momoDisbursementApiUser,
-  momoDisbursementSubscriptionKey,
-} from "../momo/config";
-import {getTransferStatus, transfer} from "../momo/client";
 
 const db = () => admin.firestore();
 
 /** Called from the "Release Payment to [artisan]" button, which only
  * shows once the artisan has marked the booking completed. Money moving
  * doesn't happen just because the job is marked done, it needs this
- * explicit confirmation from whoever paid. */
+ * explicit confirmation from whoever paid.
+ *
+ * This doesn't pay the artisan out through Paystack directly, it credits
+ * their balance field instead, an actual payout (cashout) is a separate,
+ * later action the artisan takes on their own, not automatic on release.
+ * Keeping the two apart means a release is a single atomic Firestore
+ * write instead of a Paystack API round trip, and a payout failure never
+ * leaves a job in a half-released state. */
 export const releaseEscrowToArtisan = onCall(
-  {
-    secrets: [
-      momoDisbursementSubscriptionKey,
-      momoDisbursementApiUser,
-      momoDisbursementApiKey,
-    ],
-  },
   async (request) => {
     const uid = request.auth?.uid;
     if (!uid) {
@@ -33,72 +27,51 @@ export const releaseEscrowToArtisan = onCall(
     }
 
     const paymentRef = db().collection("payments").doc(paymentId);
-    const payment = (await paymentRef.get()).data();
 
-    if (!payment) {
-      throw new HttpsError("not-found", "Payment not found.");
-    }
-    if (payment.customerId !== uid) {
-      throw new HttpsError(
-        "permission-denied",
-        "Only the customer who paid can release this."
-      );
-    }
-    if (payment.status !== "held_in_escrow") {
-      throw new HttpsError(
-        "failed-precondition",
-        "This payment isn't held in escrow."
-      );
-    }
+    // Reading the payment and flipping it from held_in_escrow to released
+    // both happen inside this one transaction, that's what makes a
+    // repeat call (a double tap, a retry after a dropped response) safe.
+    // If two calls overlap, only the first to commit sees
+    // held_in_escrow, the second re-reads the now-released status and
+    // correctly fails the precondition check instead of crediting the
+    // artisan's balance a second time.
+    await db().runTransaction(async (tx) => {
+      const paymentSnap = await tx.get(paymentRef);
+      const payment = paymentSnap.data();
 
-    const booking = (
-      await db().collection("bookings").doc(payment.bookingId).get()
-    ).data();
-    if (booking?.status !== "completed") {
-      throw new HttpsError(
-        "failed-precondition",
-        "The artisan hasn't marked this job complete yet."
-      );
-    }
+      if (!payment) {
+        throw new HttpsError("not-found", "Payment not found.");
+      }
+      if (payment.customerId !== uid) {
+        throw new HttpsError(
+          "permission-denied",
+          "Only the customer who paid can release this."
+        );
+      }
+      if (payment.status !== "held_in_escrow") {
+        throw new HttpsError(
+          "failed-precondition",
+          "This payment isn't held in escrow."
+        );
+      }
 
-    const artisan = (
-      await db().collection("users").doc(payment.artisanId).get()
-    ).data();
-    const phoneNumber = artisan?.phone;
-    if (!phoneNumber) {
-      throw new HttpsError(
-        "failed-precondition",
-        "No phone number on file for the artisan."
-      );
-    }
+      const bookingRef = db().collection("bookings").doc(payment.bookingId);
+      const bookingSnap = await tx.get(bookingRef);
+      if (bookingSnap.data()?.status !== "completed") {
+        throw new HttpsError(
+          "failed-precondition",
+          "The artisan hasn't marked this job complete yet."
+        );
+      }
 
-    const creds = {
-      subscriptionKey: momoDisbursementSubscriptionKey.value(),
-      apiUser: momoDisbursementApiUser.value(),
-      apiKey: momoDisbursementApiKey.value(),
-    };
-
-    const referenceId = await transfer({
-      amount: payment.amount,
-      phoneNumber,
-      externalId: paymentId,
-      payerMessage: `FixIt GH payout, booking ${payment.bookingId}`,
-      creds,
+      const artisanRef = db().collection("users").doc(payment.artisanId);
+      tx.update(paymentRef, {status: "released"});
+      tx.update(bookingRef, {paymentStatus: "released"});
+      tx.update(artisanRef, {
+        balance: admin.firestore.FieldValue.increment(payment.amount),
+      });
     });
 
-    await paymentRef.update({
-      status: "releasing",
-      momoDisbursementReferenceId: referenceId,
-    });
-
-    // Sandbox settles fast, worth one immediate check so the customer
-    // isn't left on "releasing" for a payout that already went through.
-    const momoStatus = await getTransferStatus(referenceId, creds);
-    if (momoStatus === "SUCCESSFUL") {
-      await paymentRef.update({status: "released"});
-      return {status: "released"};
-    }
-
-    return {status: "releasing"};
+    return {status: "released"};
   }
 );

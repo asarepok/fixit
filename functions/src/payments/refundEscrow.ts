@@ -1,11 +1,7 @@
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
-import {
-  momoDisbursementApiKey,
-  momoDisbursementApiUser,
-  momoDisbursementSubscriptionKey,
-} from "../momo/config";
-import {transfer} from "../momo/client";
+import {paystackSecretKey} from "../paystack/config";
+import {refundTransaction} from "../paystack/client";
 
 const db = () => admin.firestore();
 
@@ -15,16 +11,12 @@ async function callerIsAdmin(uid: string): Promise<boolean> {
 }
 
 /** Called from the Manage Payments admin screen for disputes the normal
- * flow doesn't cover, refunds whatever's still held in escrow back to
- * the customer. Only reachable by an admin account. */
+ * flow doesn't cover, refunds whatever's still held in escrow straight
+ * back to the original charge. A real refund against the transaction
+ * itself, unlike MoMo's version of this which was really just a separate
+ * payout pretending to be a refund. Only reachable by an admin account. */
 export const refundEscrow = onCall(
-  {
-    secrets: [
-      momoDisbursementSubscriptionKey,
-      momoDisbursementApiUser,
-      momoDisbursementApiKey,
-    ],
-  },
+  {secrets: [paystackSecretKey]},
   async (request) => {
     const uid = request.auth?.uid;
     if (!uid || !(await callerIsAdmin(uid))) {
@@ -52,30 +44,15 @@ export const refundEscrow = onCall(
       );
     }
 
-    const customer = (
-      await db().collection("users").doc(payment.customerId).get()
-    ).data();
-    const phoneNumber = customer?.phone;
-    if (!phoneNumber) {
-      throw new HttpsError(
-        "failed-precondition",
-        "No phone number on file for the customer."
-      );
-    }
+    await refundTransaction(
+      payment.paystackReference,
+      paystackSecretKey.value()
+    );
 
-    await transfer({
-      amount: payment.amount,
-      phoneNumber,
-      externalId: paymentId,
-      payerMessage: `FixIt GH refund, booking ${payment.bookingId}`,
-      creds: {
-        subscriptionKey: momoDisbursementSubscriptionKey.value(),
-        apiUser: momoDisbursementApiUser.value(),
-        apiKey: momoDisbursementApiKey.value(),
-      },
+    await paymentRef.update({
+      status: "refunded",
+      refundReason: reason ?? null,
     });
-
-    await paymentRef.update({status: "refunded", refundReason: reason ?? null});
     await db()
       .collection("bookings")
       .doc(payment.bookingId)

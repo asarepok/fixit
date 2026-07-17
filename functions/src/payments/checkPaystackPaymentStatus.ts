@@ -1,27 +1,19 @@
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
-import {
-  momoCollectionApiKey,
-  momoCollectionApiUser,
-  momoCollectionSubscriptionKey,
-} from "../momo/config";
-import {getRequestToPayStatus} from "../momo/client";
+import {paystackSecretKey} from "../paystack/config";
+import {verifyTransaction} from "../paystack/client";
 
 const db = () => admin.firestore();
 
-/** Polled by the "Confirm on Your Phone" screen every few seconds while
- * it's open, the one deliberate exception to this app's usual
+/** Polled by the "Confirm Payment" screen a few times right after the
+ * checkout UI closes, the one deliberate exception to this app's usual
  * fetch-on-open pattern, since this wait is short and bounded. Once
- * resolved once, it stops calling MoMo and just returns the stored
- * status. */
-export const checkMomoPaymentStatus = onCall(
-  {
-    secrets: [
-      momoCollectionSubscriptionKey,
-      momoCollectionApiUser,
-      momoCollectionApiKey,
-    ],
-  },
+ * resolved once, it stops calling Paystack and just returns the stored
+ * status. This is also the only thing that ever trusts a charge actually
+ * went through, never the checkout UI's own callback, see
+ * paystackWebhook.ts for the other place that's independently true. */
+export const checkPaystackPaymentStatus = onCall(
+  {secrets: [paystackSecretKey]},
   async (request) => {
     const uid = request.auth?.uid;
     if (!uid) {
@@ -47,13 +39,12 @@ export const checkMomoPaymentStatus = onCall(
       return {status: payment.status};
     }
 
-    const momoStatus = await getRequestToPayStatus(payment.momoReferenceId, {
-      subscriptionKey: momoCollectionSubscriptionKey.value(),
-      apiUser: momoCollectionApiUser.value(),
-      apiKey: momoCollectionApiKey.value(),
-    });
+    const paystackStatus = await verifyTransaction(
+      payment.paystackReference,
+      paystackSecretKey.value()
+    );
 
-    if (momoStatus === "SUCCESSFUL") {
+    if (paystackStatus === "success") {
       await paymentRef.update({status: "held_in_escrow"});
       await db()
         .collection("bookings")
@@ -62,7 +53,7 @@ export const checkMomoPaymentStatus = onCall(
       return {status: "held_in_escrow"};
     }
 
-    if (momoStatus === "FAILED") {
+    if (paystackStatus === "failed" || paystackStatus === "abandoned") {
       await paymentRef.update({status: "failed"});
       await db()
         .collection("bookings")

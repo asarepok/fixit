@@ -42,6 +42,7 @@ service cloud.firestore {
         unchanged('role') &&
         unchanged('averageRating') &&
         unchanged('ratingCount') &&
+        unchanged('balance') &&
         (unchanged('artisanStatus') || isSubmittingArtisanApplication())
       );
       allow delete: if false;

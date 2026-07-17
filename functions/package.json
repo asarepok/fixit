@@ -1,6 +1,6 @@
 {
   "name": "functions",
-  "description": "Cloud Functions for FixIt GH: MoMo collections, escrow release, and refunds",
+  "description": "Cloud Functions for FixIt GH: Paystack payments, escrow release, and refunds",
   "engines": {
     "node": "20"
   },
