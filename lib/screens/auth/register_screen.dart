@@ -149,6 +149,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     text: "Create Account",
                     onPressed: registerUser,
                   ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text("Already have an account?"),
+                TextButton(
+                  onPressed: () => context.go(AppRoutes.login),
+                  child: const Text('Sign in'),
+                ),
+              ],
+            ),
           ],
         ),
       ),

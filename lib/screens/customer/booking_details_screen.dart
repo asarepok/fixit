@@ -47,7 +47,7 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
             location: _locationController.text.trim(),
           );
       if (mounted) {
-        context.go(AppRoutes.bookingDetail, extra: bookingId);
+        context.push(AppRoutes.bookingDetail, extra: bookingId);
       }
     } catch (error) {
       if (mounted) {
