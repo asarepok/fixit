@@ -10,6 +10,13 @@ class AppConstants {
   static const double cardRadius = 16.0;
 
   static const Duration animationDuration = Duration(milliseconds: 300);
+
+  // Paystack's public key, safe to ship in the app (unlike the secret key,
+  // which only ever lives in Cloud Functions, see functions/src/paystack).
+  // Replace with the real test key from the Paystack dashboard, then swap
+  // for the live key before this goes anywhere near real users.
+  static const String paystackPublicKey =
+      "pk_test_bc1cbcdc738f0a4a51d22bbdbacd989399611fca";
 }
 
 // Every route path the app can navigate to. Used by app/router.dart to

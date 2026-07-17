@@ -38,6 +38,34 @@ class FirestoreService {
     return doc.data();
   }
 
+  // Same as getDocument, but a live stream instead of a one-time read,
+  // emits again every time the document changes. Use this for anything
+  // that should update on screen the moment the data does, rather than
+  // only when the screen is reopened.
+  Stream<Map<String, dynamic>?> streamDocument(
+    String collection,
+    String id,
+  ) {
+    return _firestore
+        .collection(collection)
+        .doc(id)
+        .snapshots()
+        .map((doc) => doc.data());
+  }
+
+  // Same as streamDocument, but includes the document's own id under the
+  // "id" key, see getDocumentWithId for why that's needed for some
+  // collections.
+  Stream<Map<String, dynamic>?> streamDocumentWithId(
+    String collection,
+    String id,
+  ) {
+    return _firestore.collection(collection).doc(id).snapshots().map((doc) {
+      if (!doc.exists) return null;
+      return {...doc.data()!, "id": doc.id};
+    });
+  }
+
   Future<List<Map<String, dynamic>>> queryWhere(
     String collection,
     String field,
@@ -121,6 +149,29 @@ class FirestoreService {
         .toList();
   }
 
+  // Same as queryWhereOrdered, but a live stream, emits a fresh list every
+  // time any matching document changes, is added, or is removed.
+  Stream<List<Map<String, dynamic>>> streamCollectionWhere(
+    String collection,
+    String field,
+    Object? isEqualTo, {
+    String? orderBy,
+    bool descending = false,
+  }) {
+    Query<Map<String, dynamic>> query =
+        _firestore.collection(collection).where(field, isEqualTo: isEqualTo);
+
+    if (orderBy != null) {
+      query = query.orderBy(orderBy, descending: descending);
+    }
+
+    return query.snapshots().map(
+          (snapshot) => snapshot.docs
+              .map((doc) => {...doc.data(), "id": doc.id})
+              .toList(),
+        );
+  }
+
   // Every document in a collection, with no filter, for admin screens like
   // Manage Bookings that need to see everything rather than one person's.
   Future<List<Map<String, dynamic>>> getCollectionOrdered(
@@ -139,5 +190,24 @@ class FirestoreService {
     return snapshot.docs
         .map((doc) => {...doc.data(), "id": doc.id})
         .toList();
+  }
+
+  // Same as getCollectionOrdered, but a live stream.
+  Stream<List<Map<String, dynamic>>> streamCollectionOrdered(
+    String collection, {
+    String? orderBy,
+    bool descending = false,
+  }) {
+    Query<Map<String, dynamic>> query = _firestore.collection(collection);
+
+    if (orderBy != null) {
+      query = query.orderBy(orderBy, descending: descending);
+    }
+
+    return query.snapshots().map(
+          (snapshot) => snapshot.docs
+              .map((doc) => {...doc.data(), "id": doc.id})
+              .toList(),
+        );
   }
 }

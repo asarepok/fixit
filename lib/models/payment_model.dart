@@ -1,4 +1,4 @@
-// Where a booking's money is in the MoMo escrow flow. Separate from
+// Where a booking's money is in the Paystack escrow flow. Separate from
 // BookingStatus on purpose, a booking can be "accepted" with payment still
 // "pending", they're two different fields tracking two different things.
 enum PaymentStatus {
@@ -44,8 +44,8 @@ class Payment {
   final String artisanId;
   final double amount;
   final PaymentStatus status;
-  final String? momoReferenceId;
-  final String? momoDisbursementReferenceId;
+  final String? paystackReference;
+  final String? paystackTransferReference;
   final String? refundReason;
   final DateTime? createdAt;
 
@@ -56,8 +56,8 @@ class Payment {
     required this.artisanId,
     required this.amount,
     required this.status,
-    this.momoReferenceId,
-    this.momoDisbursementReferenceId,
+    this.paystackReference,
+    this.paystackTransferReference,
     this.refundReason,
     this.createdAt,
   });
@@ -70,10 +70,23 @@ class Payment {
       artisanId: map["artisanId"] as String,
       amount: (map["amount"] as num).toDouble(),
       status: PaymentStatus.fromValue(map["status"] as String?),
-      momoReferenceId: map["momoReferenceId"] as String?,
-      momoDisbursementReferenceId: map["momoDisbursementReferenceId"] as String?,
+      paystackReference: map["paystackReference"] as String?,
+      paystackTransferReference: map["paystackTransferReference"] as String?,
       refundReason: map["refundReason"] as String?,
       createdAt: (map["createdAt"] as dynamic)?.toDate(),
     );
   }
+}
+
+// What starting a payment hands back: the new payment's id, for checking
+// its status afterward, and the authorization URL, Paystack's hosted
+// checkout page, which the payment screen opens in a webview.
+class PaystackInitiation {
+  final String paymentId;
+  final String authorizationUrl;
+
+  const PaystackInitiation({
+    required this.paymentId,
+    required this.authorizationUrl,
+  });
 }

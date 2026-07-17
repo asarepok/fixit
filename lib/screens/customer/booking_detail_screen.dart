@@ -20,13 +20,17 @@ class BookingDetailScreen extends ConsumerWidget {
     Booking booking,
   ) async {
     try {
-      final paymentId = await ref
+      final initiation = await ref
           .read(paymentControllerProvider.notifier)
           .initiatePayment(booking.id);
       if (context.mounted) {
         context.push(
           AppRoutes.paymentWaiting,
-          extra: PaymentWaitArgs(bookingId: booking.id, paymentId: paymentId),
+          extra: PaymentWaitArgs(
+            bookingId: booking.id,
+            paymentId: initiation.paymentId,
+            authorizationUrl: initiation.authorizationUrl,
+          ),
         );
       }
     } catch (error) {
@@ -54,6 +58,8 @@ class BookingDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bookingAsync = ref.watch(bookingProvider(bookingId));
+    final paymentLoading = ref.watch(paymentControllerProvider).isLoading;
+    final bookingLoading = ref.watch(bookingControllerProvider).isLoading;
     return Scaffold(
       appBar: AppBar(title: const Text('Booking Details')),
       body: bookingAsync.when(
@@ -104,28 +110,36 @@ class BookingDetailScreen extends ConsumerWidget {
                 ),
               const SizedBox(height: 28),
               if (booking.status == BookingStatus.pending)
-                OutlinedButton(
-                  onPressed: () async {
-                    try {
-                      await ref
-                          .read(bookingControllerProvider.notifier)
-                          .cancelBooking(booking.id);
-                    } catch (error) {
-                      if (context.mounted) context.showSnack(error.toString());
-                    }
-                  },
-                  child: const Text('Cancel Request'),
-                ),
+                bookingLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : OutlinedButton(
+                        onPressed: () async {
+                          try {
+                            await ref
+                                .read(bookingControllerProvider.notifier)
+                                .cancelBooking(booking.id);
+                          } catch (error) {
+                            if (context.mounted) {
+                              context.showSnack(error.toString());
+                            }
+                          }
+                        },
+                        child: const Text('Cancel Request'),
+                      ),
               if (canPay)
-                PrimaryButton(
-                  text: 'Pay with MoMo',
-                  onPressed: () => _pay(context, ref, booking),
-                ),
+                paymentLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : PrimaryButton(
+                        text: 'Pay with Paystack',
+                        onPressed: () => _pay(context, ref, booking),
+                      ),
               if (canRelease)
-                PrimaryButton(
-                  text: 'Release Payment',
-                  onPressed: () => _release(context, ref, booking),
-                ),
+                paymentLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : PrimaryButton(
+                        text: 'Release Payment',
+                        onPressed: () => _release(context, ref, booking),
+                      ),
               if (canContact && booking.chatId != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
