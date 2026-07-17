@@ -10,8 +10,8 @@ import '../../utils/validators.dart';
 import '../../widgets/primary_button.dart';
 
 // The login screen. Only draws the form and reacts to the result of
-// signing in, it does not call Firebase itself. Signing in and looking up
-// the role both happen in AuthController (lib/providers/auth_provider.dart).
+// signing in, it does not call Firebase itself. Signing in and loading
+// the profile both happen in AuthController (lib/providers/auth_provider.dart).
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -31,8 +31,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   // Calls AuthController.login, which signs the user in with Firebase Auth
-  // and looks up their role in Firestore. Every account opens Home except
-  // admins, artisan mode is switched into from Home, not chosen here.
+  // and loads their profile from Firestore. Admins land on the admin
+  // dashboard, verified artisans land straight in artisan mode, everyone
+  // else opens Home.
   Future<void> loginUser() async {
     if (!Validators.isValidEmail(_emailController.text)) {
       context.showSnack('Enter a valid email address.');
@@ -43,16 +44,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
     try {
-      final role = await ref
+      final user = await ref
           .read(authControllerProvider.notifier)
           .login(_emailController.text.trim(), _passwordController.text.trim());
 
       if (!mounted) return;
-      ref.read(appModeProvider.notifier).state = AppMode.customer;
 
-      if (role == "admin") {
+      if (user?.isAdmin == true) {
+        ref.read(appModeProvider.notifier).state = AppMode.customer;
         context.go(AppRoutes.adminDashboard);
+      } else if (user?.isArtisan == true) {
+        ref.read(appModeProvider.notifier).state = AppMode.artisan;
+        context.go(AppRoutes.artisanDashboard);
       } else {
+        ref.read(appModeProvider.notifier).state = AppMode.customer;
         context.go(AppRoutes.home);
       }
     } catch (e) {

@@ -1,11 +1,14 @@
+import 'dart:async';
+
 import '../models/chat_model.dart';
 import '../services/firestore_service.dart';
 
 const _chatsCollection = "chats";
 
-// One ticket-style thread per booking. Everything here is a plain fetch,
-// no live listeners, screens refetch on open or right after sending a
-// message, see chat_provider.dart.
+// One ticket-style thread per booking. getOrCreateChat is still a plain
+// one-time read (it only ever runs once, right when a booking is
+// created), but the threads list and a thread's messages are both live,
+// see streamMyChats and streamMessages.
 class ChatRepository {
   final FirestoreService _firestoreService;
 
@@ -42,21 +45,10 @@ class ChatRepository {
     return _firestoreService.addDocument(_chatsCollection, thread.toCreateMap());
   }
 
-  // Every thread this user is part of, either side, newest activity
-  // first. Firestore can't OR two equality filters in one query, so this
-  // runs both and merges them.
-  Future<List<ChatThread>> getMyChats(String uid) async {
-    final asCustomer = await _firestoreService.queryWhereOrdered(
-      _chatsCollection,
-      "customerId",
-      uid,
-    );
-    final asArtisan = await _firestoreService.queryWhereOrdered(
-      _chatsCollection,
-      "artisanId",
-      uid,
-    );
-
+  List<ChatThread> _mergeAndSort(
+    List<Map<String, dynamic>> asCustomer,
+    List<Map<String, dynamic>> asArtisan,
+  ) {
     final threads = [...asCustomer, ...asArtisan].map(ChatThread.fromMap).toList();
 
     threads.sort((a, b) {
@@ -68,12 +60,48 @@ class ChatRepository {
     return threads;
   }
 
-  Future<List<ChatMessage>> getMessages(String chatId) async {
-    final docs = await _firestoreService.getCollectionOrdered(
-      "$_chatsCollection/$chatId/messages",
-      orderBy: "sentAt",
-    );
-    return docs.map(ChatMessage.fromMap).toList();
+  // Every thread this user is part of, live, newest activity first.
+  // Firestore still can't OR two equality filters in one query, so this
+  // runs two live listeners (one for each side) and re-merges whenever
+  // either one changes, the same merge getMyChats used to do once.
+  Stream<List<ChatThread>> streamMyChats(String uid) {
+    final controller = StreamController<List<ChatThread>>.broadcast();
+    List<Map<String, dynamic>>? asCustomer;
+    List<Map<String, dynamic>>? asArtisan;
+
+    void emitIfReady() {
+      if (asCustomer == null || asArtisan == null) return;
+      controller.add(_mergeAndSort(asCustomer!, asArtisan!));
+    }
+
+    final customerSub = _firestoreService
+        .streamCollectionWhere(_chatsCollection, "customerId", uid)
+        .listen((docs) {
+      asCustomer = docs;
+      emitIfReady();
+    });
+    final artisanSub = _firestoreService
+        .streamCollectionWhere(_chatsCollection, "artisanId", uid)
+        .listen((docs) {
+      asArtisan = docs;
+      emitIfReady();
+    });
+
+    controller.onCancel = () {
+      customerSub.cancel();
+      artisanSub.cancel();
+    };
+
+    return controller.stream;
+  }
+
+  // A thread's messages, live, oldest first so new ones append at the
+  // bottom. Replaces the old fetch-on-open/refetch-after-send pattern,
+  // both sides of a conversation see a new message the moment it's sent.
+  Stream<List<ChatMessage>> streamMessages(String chatId) {
+    return _firestoreService
+        .streamCollectionOrdered("$_chatsCollection/$chatId/messages", orderBy: "sentAt")
+        .map((docs) => docs.map(ChatMessage.fromMap).toList());
   }
 
   Future<void> sendMessage({

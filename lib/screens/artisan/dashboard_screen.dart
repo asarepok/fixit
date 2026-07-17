@@ -131,71 +131,6 @@ class _RequestsTab extends ConsumerWidget {
   final int requestsCount;
   final int jobsCount;
 
-  Future<void> _accept(BuildContext context, WidgetRef ref, Booking booking) async {
-    final amount = await showDialog<double>(
-      context: context,
-      builder: (dialogContext) {
-        final controller = TextEditingController();
-        return AlertDialog(
-          title: const Text('Quote a price'),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(prefixText: 'GH₵ ', hintText: 'Amount'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () =>
-                  Navigator.pop(dialogContext, double.tryParse(controller.text.trim())),
-              child: const Text('Send Quote'),
-            ),
-          ],
-        );
-      },
-    );
-    if (amount == null || amount <= 0) return;
-
-    try {
-      await ref.read(bookingControllerProvider.notifier).acceptBooking(booking.id, amount);
-      if (context.mounted) context.showSnack('Request accepted, quote sent.');
-    } catch (error) {
-      if (context.mounted) context.showSnack(error.toString());
-    }
-  }
-
-  Future<void> _decline(BuildContext context, WidgetRef ref, Booking booking) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Decline this request?'),
-        content: const Text('The customer will need to book someone else.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Decline'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-
-    try {
-      await ref.read(bookingControllerProvider.notifier).declineBooking(booking.id);
-      if (context.mounted) context.showSnack('Request declined.');
-    } catch (error) {
-      if (context.mounted) context.showSnack(error.toString());
-    }
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final requestsAsync = ref.watch(artisanRequestsProvider);
@@ -211,6 +146,37 @@ class _RequestsTab extends ConsumerWidget {
           Text(
             'Manage your service work in one place.',
             style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 16),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.account_balance_wallet_outlined,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Available balance',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'GH₵ ${(user?.balance ?? 0).toStringAsFixed(2)}',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: 22),
           GridView.count(
@@ -263,48 +229,7 @@ class _RequestsTab extends ConsumerWidget {
               }
               return Column(
                 children: requests
-                    .map(
-                      (booking) => Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              UserNameLabel(
-                                uid: booking.customerId,
-                                style: Theme.of(context).textTheme.titleMedium,
-                              ),
-                              const SizedBox(height: 6),
-                              Text(booking.description),
-                              const SizedBox(height: 4),
-                              Text(
-                                booking.location,
-                                style: Theme.of(context).textTheme.bodyMedium,
-                              ),
-                              const SizedBox(height: 14),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: OutlinedButton(
-                                      onPressed: () => _decline(context, ref, booking),
-                                      child: const Text('Decline'),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: ElevatedButton(
-                                      onPressed: () => _accept(context, ref, booking),
-                                      child: const Text('Accept'),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    )
+                    .map((booking) => _RequestCard(booking: booking))
                     .toList(),
               );
             },
@@ -315,28 +240,146 @@ class _RequestsTab extends ConsumerWidget {
   }
 }
 
+// One request's card, with its own loading state, so accepting or
+// declining one request only shows that card as busy, not every request
+// in the list.
+class _RequestCard extends ConsumerStatefulWidget {
+  const _RequestCard({required this.booking});
+  final Booking booking;
+
+  @override
+  ConsumerState<_RequestCard> createState() => _RequestCardState();
+}
+
+class _RequestCardState extends ConsumerState<_RequestCard> {
+  bool _loading = false;
+
+  Future<void> _accept() async {
+    final amount = await showDialog<double>(
+      context: context,
+      builder: (dialogContext) {
+        final controller = TextEditingController();
+        return AlertDialog(
+          title: const Text('Quote a price'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(prefixText: 'GH₵ ', hintText: 'Amount'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () =>
+                  Navigator.pop(dialogContext, double.tryParse(controller.text.trim())),
+              child: const Text('Send Quote'),
+            ),
+          ],
+        );
+      },
+    );
+    if (amount == null || amount <= 0) return;
+
+    setState(() => _loading = true);
+    try {
+      await ref
+          .read(bookingControllerProvider.notifier)
+          .acceptBooking(widget.booking.id, amount);
+      if (mounted) context.showSnack('Request accepted, quote sent.');
+    } catch (error) {
+      if (mounted) context.showSnack(error.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _decline() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Decline this request?'),
+        content: const Text('The customer will need to book someone else.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Decline'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _loading = true);
+    try {
+      await ref
+          .read(bookingControllerProvider.notifier)
+          .declineBooking(widget.booking.id);
+      if (mounted) context.showSnack('Request declined.');
+    } catch (error) {
+      if (mounted) context.showSnack(error.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            UserNameLabel(
+              uid: widget.booking.customerId,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 6),
+            Text(widget.booking.description),
+            const SizedBox(height: 4),
+            Text(
+              widget.booking.location,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 14),
+            _loading
+                ? const Center(child: CircularProgressIndicator())
+                : Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _decline,
+                          child: const Text('Decline'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _accept,
+                          child: const Text('Accept'),
+                        ),
+                      ),
+                    ],
+                  ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // Tab 1: accepted/in-progress bookings, with Start Job (once payment is
 // held in escrow) and Mark Complete.
 class _JobsTab extends ConsumerWidget {
   const _JobsTab();
-
-  Future<void> _start(BuildContext context, WidgetRef ref, Booking booking) async {
-    try {
-      await ref.read(bookingControllerProvider.notifier).startJob(booking.id);
-      if (context.mounted) context.showSnack('Job started.');
-    } catch (error) {
-      if (context.mounted) context.showSnack(error.toString());
-    }
-  }
-
-  Future<void> _complete(BuildContext context, WidgetRef ref, Booking booking) async {
-    try {
-      await ref.read(bookingControllerProvider.notifier).completeJob(booking.id);
-      if (context.mounted) context.showSnack('Job marked complete.');
-    } catch (error) {
-      if (context.mounted) context.showSnack(error.toString());
-    }
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -362,67 +405,112 @@ class _JobsTab extends ConsumerWidget {
           child: ListView.builder(
             padding: const EdgeInsets.all(20),
             itemCount: jobs.length,
-            itemBuilder: (context, index) {
-              final booking = jobs[index];
-              final canStart = booking.status == BookingStatus.accepted &&
-                  booking.paymentStatus == PaymentStatus.heldInEscrow;
-              final waitingOnPayment = booking.status == BookingStatus.accepted &&
-                  booking.paymentStatus != PaymentStatus.heldInEscrow;
-              final canComplete = booking.status == BookingStatus.inProgress;
-
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      UserNameLabel(
-                        uid: booking.customerId,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 6),
-                      Text(booking.description),
-                      const SizedBox(height: 4),
-                      Text(
-                        booking.location,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        booking.status.value.replaceAll('_', ' ').toUpperCase(),
-                        style: Theme.of(context).textTheme.labelLarge,
-                      ),
-                      const SizedBox(height: 14),
-                      if (waitingOnPayment)
-                        Text(
-                          'Waiting for the customer to pay into escrow.',
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      if (canStart)
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () => _start(context, ref, booking),
-                            child: const Text('Start Job'),
-                          ),
-                        ),
-                      if (canComplete)
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () => _complete(context, ref, booking),
-                            child: const Text('Mark Complete'),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              );
-            },
+            itemBuilder: (context, index) => _JobCard(booking: jobs[index]),
           ),
         );
       },
+    );
+  }
+}
+
+// One job's card, with its own loading state, so starting or completing
+// one job only shows that card as busy, not every job in the list.
+class _JobCard extends ConsumerStatefulWidget {
+  const _JobCard({required this.booking});
+  final Booking booking;
+
+  @override
+  ConsumerState<_JobCard> createState() => _JobCardState();
+}
+
+class _JobCardState extends ConsumerState<_JobCard> {
+  bool _loading = false;
+
+  Future<void> _start() async {
+    setState(() => _loading = true);
+    try {
+      await ref.read(bookingControllerProvider.notifier).startJob(widget.booking.id);
+      if (mounted) context.showSnack('Job started.');
+    } catch (error) {
+      if (mounted) context.showSnack(error.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _complete() async {
+    setState(() => _loading = true);
+    try {
+      await ref.read(bookingControllerProvider.notifier).completeJob(widget.booking.id);
+      if (mounted) context.showSnack('Job marked complete.');
+    } catch (error) {
+      if (mounted) context.showSnack(error.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final booking = widget.booking;
+    final canStart = booking.status == BookingStatus.accepted &&
+        booking.paymentStatus == PaymentStatus.heldInEscrow;
+    final waitingOnPayment = booking.status == BookingStatus.accepted &&
+        booking.paymentStatus != PaymentStatus.heldInEscrow;
+    final canComplete = booking.status == BookingStatus.inProgress;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            UserNameLabel(
+              uid: booking.customerId,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 6),
+            Text(booking.description),
+            const SizedBox(height: 4),
+            Text(
+              booking.location,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              booking.status.value.replaceAll('_', ' ').toUpperCase(),
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+            const SizedBox(height: 14),
+            if (waitingOnPayment)
+              Text(
+                'Waiting for the customer to pay into escrow.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            if (_loading && (canStart || canComplete))
+              const Center(child: CircularProgressIndicator())
+            else ...[
+              if (canStart)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _start,
+                    child: const Text('Start Job'),
+                  ),
+                ),
+              if (canComplete)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _complete,
+                    child: const Text('Mark Complete'),
+                  ),
+                ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

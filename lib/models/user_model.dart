@@ -7,7 +7,13 @@
 // tracks the Become an Artisan application ("none", "pending", "verified",
 // "rejected"), profession/bio/averageRating/ratingCount only mean something
 // once artisanStatus is "verified". latitude/longitude are optional since a
-// user may not have shared their location yet.
+// user may not have shared their location yet. momoNetwork (MTN, Vodafone,
+// AirtelTigo) is only needed for an artisan, a future cashout flow will
+// use it alongside phone to register a Paystack payout recipient. balance
+// is an artisan's running total from released payments, only ever changed
+// by releaseEscrowToArtisan (and eventually a cashout function) through
+// the Admin SDK, never directly writable by the client, see
+// firestore.rules.
 class UserModel {
 
   final String uid;
@@ -33,6 +39,10 @@ class UserModel {
   final double? averageRating;
 
   final int? ratingCount;
+
+  final String? momoNetwork;
+
+  final double balance;
 
 
 
@@ -61,6 +71,10 @@ class UserModel {
     this.averageRating,
 
     this.ratingCount,
+
+    this.momoNetwork,
+
+    this.balance = 0,
 
   });
 
@@ -107,6 +121,10 @@ class UserModel {
 
       ratingCount: (map["ratingCount"] as num?)?.toInt(),
 
+      momoNetwork: map["momoNetwork"] as String?,
+
+      balance: (map["balance"] as num?)?.toDouble() ?? 0,
+
     );
 
   }
@@ -141,6 +159,8 @@ class UserModel {
       "averageRating":averageRating,
 
       "ratingCount":ratingCount,
+
+      "momoNetwork":momoNetwork,
 
     };
 

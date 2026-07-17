@@ -9,54 +9,52 @@ final bookingRepositoryProvider = Provider<BookingRepository>((ref) {
   return BookingRepository(ref.watch(firestoreServiceProvider));
 });
 
-// The customer's "My Bookings" list.
-final myBookingsProvider = FutureProvider.autoDispose<List<Booking>>((ref) {
+// The customer's "My Bookings" list, live.
+final myBookingsProvider = StreamProvider.autoDispose<List<Booking>>((ref) {
   final uid = ref.watch(authRepositoryProvider).currentUserId;
-  if (uid == null) return Future.value(const []);
-  return ref.watch(bookingRepositoryProvider).getMyBookings(uid);
+  if (uid == null) return Stream.value(const []);
+  return ref.watch(bookingRepositoryProvider).streamMyBookings(uid);
 });
 
-// The artisan's "Requests" list: pending bookings waiting on them.
-final artisanRequestsProvider = FutureProvider.autoDispose<List<Booking>>((
+// The artisan's "Requests" list, live: pending bookings waiting on them.
+final artisanRequestsProvider = StreamProvider.autoDispose<List<Booking>>((
   ref,
 ) {
   final uid = ref.watch(authRepositoryProvider).currentUserId;
-  if (uid == null) return Future.value(const []);
-  return ref.watch(bookingRepositoryProvider).getArtisanRequests(uid);
+  if (uid == null) return Stream.value(const []);
+  return ref.watch(bookingRepositoryProvider).streamArtisanRequests(uid);
 });
 
-// The artisan's "Jobs" list: accepted or in-progress work.
-final artisanJobsProvider = FutureProvider.autoDispose<List<Booking>>((ref) {
+// The artisan's "Jobs" list, live: accepted or in-progress work.
+final artisanJobsProvider = StreamProvider.autoDispose<List<Booking>>((ref) {
   final uid = ref.watch(authRepositoryProvider).currentUserId;
-  if (uid == null) return Future.value(const []);
-  return ref.watch(bookingRepositoryProvider).getArtisanJobs(uid);
+  if (uid == null) return Stream.value(const []);
+  return ref.watch(bookingRepositoryProvider).streamArtisanJobs(uid);
 });
 
-// Every booking, for the admin Manage Bookings screen.
-final allBookingsProvider = FutureProvider.autoDispose<List<Booking>>((ref) {
-  return ref.watch(bookingRepositoryProvider).getAllBookings();
+// Every booking, live, for the admin Manage Bookings screen.
+final allBookingsProvider = StreamProvider.autoDispose<List<Booking>>((ref) {
+  return ref.watch(bookingRepositoryProvider).streamAllBookings();
 });
 
-// A single booking, for the Booking Detail screen, keyed by bookingId.
-final bookingProvider = FutureProvider.autoDispose.family<Booking?, String>((
+// A single booking, live, for the Booking Detail screen, keyed by
+// bookingId. Updates on its own the instant its status or paymentStatus
+// changes, no manual refresh needed.
+final bookingProvider = StreamProvider.autoDispose.family<Booking?, String>((
   ref,
   bookingId,
 ) {
-  return ref.watch(bookingRepositoryProvider).getBooking(bookingId);
+  return ref.watch(bookingRepositoryProvider).streamBooking(bookingId);
 });
 
 // Every action a booking can go through: creating one, accepting with a
 // quote, declining, cancelling, starting the job, and marking it done.
+// None of these need to invalidate a list or a single booking afterward
+// anymore, myBookingsProvider/artisanRequestsProvider/etc are all live
+// streams now, they pick up every write on their own.
 class BookingController extends AsyncNotifier<void> {
   @override
   Future<void> build() async {}
-
-  void _refreshLists() {
-    ref.invalidate(myBookingsProvider);
-    ref.invalidate(artisanRequestsProvider);
-    ref.invalidate(artisanJobsProvider);
-    ref.invalidate(allBookingsProvider);
-  }
 
   // Remembers a booking create that's still in progress or failed partway,
   // keyed by what was actually requested. If the same request comes
@@ -118,7 +116,6 @@ class BookingController extends AsyncNotifier<void> {
       _pendingBookingId = null;
       _pendingBookingCreated = false;
 
-      _refreshLists();
       state = const AsyncData(null);
       return bookingId;
     } catch (e, st) {
@@ -133,8 +130,6 @@ class BookingController extends AsyncNotifier<void> {
       await ref
           .read(bookingRepositoryProvider)
           .acceptBooking(bookingId, amount);
-      ref.invalidate(bookingProvider(bookingId));
-      _refreshLists();
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);
@@ -146,8 +141,6 @@ class BookingController extends AsyncNotifier<void> {
     state = const AsyncLoading();
     try {
       await ref.read(bookingRepositoryProvider).declineBooking(bookingId);
-      ref.invalidate(bookingProvider(bookingId));
-      _refreshLists();
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);
@@ -159,8 +152,6 @@ class BookingController extends AsyncNotifier<void> {
     state = const AsyncLoading();
     try {
       await ref.read(bookingRepositoryProvider).cancelBooking(bookingId);
-      ref.invalidate(bookingProvider(bookingId));
-      _refreshLists();
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);
@@ -172,8 +163,6 @@ class BookingController extends AsyncNotifier<void> {
     state = const AsyncLoading();
     try {
       await ref.read(bookingRepositoryProvider).startJob(bookingId);
-      ref.invalidate(bookingProvider(bookingId));
-      _refreshLists();
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);
@@ -185,8 +174,6 @@ class BookingController extends AsyncNotifier<void> {
     state = const AsyncLoading();
     try {
       await ref.read(bookingRepositoryProvider).completeJob(bookingId);
-      ref.invalidate(bookingProvider(bookingId));
-      _refreshLists();
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);

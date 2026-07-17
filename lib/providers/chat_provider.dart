@@ -8,19 +8,19 @@ final chatRepositoryProvider = Provider<ChatRepository>((ref) {
   return ChatRepository(ref.watch(firestoreServiceProvider));
 });
 
-// The signed-in user's ticket inbox, every thread they're part of, either
-// side, newest activity first.
-final myChatsProvider = FutureProvider.autoDispose<List<ChatThread>>((ref) {
+// The signed-in user's ticket inbox, live, every thread they're part of,
+// either side, newest activity first.
+final myChatsProvider = StreamProvider.autoDispose<List<ChatThread>>((ref) {
   final uid = ref.watch(authRepositoryProvider).currentUserId;
-  if (uid == null) return Future.value(const []);
-  return ref.watch(chatRepositoryProvider).getMyChats(uid);
+  if (uid == null) return Stream.value(const []);
+  return ref.watch(chatRepositoryProvider).streamMyChats(uid);
 });
 
-// A single thread's messages, keyed by chatId. Fetch-on-open, refetch by
-// invalidating this after sending, no live listener.
+// A single thread's messages, live, keyed by chatId. Both sides of a
+// conversation see a new message the moment it's sent, no refresh needed.
 final chatMessagesProvider =
-    FutureProvider.autoDispose.family<List<ChatMessage>, String>((ref, chatId) {
-  return ref.watch(chatRepositoryProvider).getMessages(chatId);
+    StreamProvider.autoDispose.family<List<ChatMessage>, String>((ref, chatId) {
+  return ref.watch(chatRepositoryProvider).streamMessages(chatId);
 });
 
 class ChatController extends AsyncNotifier<void> {
@@ -36,9 +36,6 @@ class ChatController extends AsyncNotifier<void> {
           senderId: uid,
           text: text,
         );
-
-    ref.invalidate(chatMessagesProvider(chatId));
-    ref.invalidate(myChatsProvider);
   }
 }
 

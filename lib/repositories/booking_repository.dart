@@ -66,6 +66,9 @@ class BookingRepository {
     });
   }
 
+  // A one-time read, used internally for a precondition check right
+  // before a write (cancelBooking, startJob), not for displaying a
+  // booking on screen, see streamBooking for that.
   Future<Booking?> getBooking(String bookingId) async {
     final data = await _firestoreService.getDocumentWithId(
       _bookingsCollection,
@@ -75,60 +78,77 @@ class BookingRepository {
     return Booking.fromMap(data);
   }
 
-  // The customer's "My Bookings" list, newest first.
-  Future<List<Booking>> getMyBookings(String customerId) async {
-    final docs = await _firestoreService.queryWhereOrdered(
-      _bookingsCollection,
-      "customerId",
-      customerId,
-      orderBy: "createdAt",
-      descending: true,
-    );
-    return docs.map(Booking.fromMap).toList();
+  // A single booking, live, for the Booking Detail screen. Updates on its
+  // own the moment its status or paymentStatus changes, for example the
+  // instant the other side accepts, declines, or the payment clears.
+  Stream<Booking?> streamBooking(String bookingId) {
+    return _firestoreService
+        .streamDocumentWithId(_bookingsCollection, bookingId)
+        .map((data) => data == null ? null : Booking.fromMap(data));
   }
 
-  // The artisan's "Requests" list: pending bookings waiting on them.
-  Future<List<Booking>> getArtisanRequests(String artisanId) async {
-    final docs = await _firestoreService.queryWhereOrdered(
-      _bookingsCollection,
-      "artisanId",
-      artisanId,
-      orderBy: "createdAt",
-      descending: true,
-    );
-    return docs
-        .map(Booking.fromMap)
-        .where((b) => b.status == BookingStatus.pending)
-        .toList();
-  }
-
-  // The artisan's "Jobs" list: accepted or in-progress work.
-  Future<List<Booking>> getArtisanJobs(String artisanId) async {
-    final docs = await _firestoreService.queryWhereOrdered(
-      _bookingsCollection,
-      "artisanId",
-      artisanId,
-      orderBy: "createdAt",
-      descending: true,
-    );
-    return docs
-        .map(Booking.fromMap)
-        .where(
-          (b) =>
-              b.status == BookingStatus.accepted ||
-              b.status == BookingStatus.inProgress,
+  // The customer's "My Bookings" list, live, newest first.
+  Stream<List<Booking>> streamMyBookings(String customerId) {
+    return _firestoreService
+        .streamCollectionWhere(
+          _bookingsCollection,
+          "customerId",
+          customerId,
+          orderBy: "createdAt",
+          descending: true,
         )
-        .toList();
+        .map((docs) => docs.map(Booking.fromMap).toList());
   }
 
-  // Every booking, for the admin Manage Bookings screen, no filtering.
-  Future<List<Booking>> getAllBookings() async {
-    final docs = await _firestoreService.getCollectionOrdered(
-      _bookingsCollection,
-      orderBy: "createdAt",
-      descending: true,
-    );
-    return docs.map(Booking.fromMap).toList();
+  // The artisan's "Requests" list, live: pending bookings waiting on them.
+  Stream<List<Booking>> streamArtisanRequests(String artisanId) {
+    return _firestoreService
+        .streamCollectionWhere(
+          _bookingsCollection,
+          "artisanId",
+          artisanId,
+          orderBy: "createdAt",
+          descending: true,
+        )
+        .map(
+          (docs) => docs
+              .map(Booking.fromMap)
+              .where((b) => b.status == BookingStatus.pending)
+              .toList(),
+        );
+  }
+
+  // The artisan's "Jobs" list, live: accepted or in-progress work.
+  Stream<List<Booking>> streamArtisanJobs(String artisanId) {
+    return _firestoreService
+        .streamCollectionWhere(
+          _bookingsCollection,
+          "artisanId",
+          artisanId,
+          orderBy: "createdAt",
+          descending: true,
+        )
+        .map(
+          (docs) => docs
+              .map(Booking.fromMap)
+              .where(
+                (b) =>
+                    b.status == BookingStatus.accepted ||
+                    b.status == BookingStatus.inProgress,
+              )
+              .toList(),
+        );
+  }
+
+  // Every booking, live, for the admin Manage Bookings screen, no filter.
+  Stream<List<Booking>> streamAllBookings() {
+    return _firestoreService
+        .streamCollectionOrdered(
+          _bookingsCollection,
+          orderBy: "createdAt",
+          descending: true,
+        )
+        .map((docs) => docs.map(Booking.fromMap).toList());
   }
 
   // Artisan accepts a pending request with a price quote, this is the

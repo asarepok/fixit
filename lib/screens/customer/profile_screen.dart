@@ -97,10 +97,7 @@ class ProfileScreen extends ConsumerWidget {
               _ProfileOption(
                 icon: Icons.person_outline,
                 title: 'Edit Profile',
-                onTap: () async {
-                  await context.push(AppRoutes.editProfile);
-                  ref.invalidate(currentUserProfileProvider);
-                },
+                onTap: () => context.push(AppRoutes.editProfile),
               ),
               _ProfileOption(
                 icon: Icons.location_on_outlined,

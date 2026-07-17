@@ -28,15 +28,17 @@ final authStateProvider = StreamProvider((ref) {
   return ref.watch(authRepositoryProvider).authUidChanges();
 });
 
-// The signed-in user's own profile as a UserModel. Watch this in any
-// screen that displays or depends on "my profile", for example the profile
-// screen. Refreshes automatically when the signed-in user changes, and can
-// be refreshed manually with ref.invalidate(currentUserProfileProvider)
-// after an update.
-final currentUserProfileProvider =
-    FutureProvider.autoDispose<UserModel?>((ref) {
-  ref.watch(authStateProvider);
-  return ref.watch(authRepositoryProvider).getCurrentUserProfile();
+// The signed-in user's own profile as a UserModel, live. Watch this in
+// any screen that displays or depends on "my profile", for example the
+// artisan dashboard's balance card, it updates on its own the moment the
+// underlying document changes (a release crediting a balance, an admin
+// approving an application, ...), no manual refresh or invalidate needed.
+final currentUserProfileProvider = StreamProvider.autoDispose<UserModel?>((
+  ref,
+) {
+  final uid = ref.watch(authStateProvider).valueOrNull;
+  if (uid == null) return Stream.value(null);
+  return ref.watch(authRepositoryProvider).streamUserProfile(uid);
 });
 
 // Every account, for the admin Manage Users screen.
@@ -59,18 +61,18 @@ class AuthController extends AsyncNotifier<void> {
   @override
   Future<void> build() async {}
 
-  // Signs the user in, then looks up their role. Returns the role
-  // ("user" or "admin") so the screen can decide whether to open the admin
-  // dashboard, every other account opens Home, artisan mode is a switch
-  // from there, not a login-time destination.
-  Future<String?> login(String email, String password) async {
+  // Signs the user in, then loads their profile. The login screen uses
+  // this to decide where to land them: admins go to the admin dashboard,
+  // verified artisans open straight into artisan mode, everyone else
+  // opens Home.
+  Future<UserModel?> login(String email, String password) async {
     state = const AsyncLoading();
     try {
       final repo = ref.read(authRepositoryProvider);
       await repo.login(email, password);
-      final role = await repo.getUserRole(repo.currentUserId!);
+      final user = await repo.getCurrentUserProfile();
       state = const AsyncData(null);
-      return role;
+      return user;
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;
@@ -110,13 +112,18 @@ class AuthController extends AsyncNotifier<void> {
   Future<void> updateProfile({
     required String name,
     required String phone,
+    String? momoNetwork,
   }) async {
     state = const AsyncLoading();
     try {
       final repo = ref.read(authRepositoryProvider);
       final uid = repo.currentUserId!;
-      await repo.updateProfile(uid: uid, name: name, phone: phone);
-      ref.invalidate(currentUserProfileProvider);
+      await repo.updateProfile(
+        uid: uid,
+        name: name,
+        phone: phone,
+        momoNetwork: momoNetwork,
+      );
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);
@@ -131,7 +138,6 @@ class AuthController extends AsyncNotifier<void> {
     final repo = ref.read(authRepositoryProvider);
     final uid = repo.currentUserId!;
     await repo.updateMyLocation(uid: uid, latitude: latitude, longitude: longitude);
-    ref.invalidate(currentUserProfileProvider);
   }
 }
 

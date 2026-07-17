@@ -49,7 +49,6 @@ class VerificationController extends AsyncNotifier<void> {
             document: document,
           );
       ref.invalidate(myApplicationProvider);
-      ref.invalidate(currentUserProfileProvider);
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);

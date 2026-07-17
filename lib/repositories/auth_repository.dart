@@ -78,23 +78,31 @@ class AuthRepository {
     return UserModel.fromMap(data);
   }
 
-  // Reads a user's role by uid. Used right after login to decide whether
-  // to open the admin dashboard, every other account just opens Home,
-  // artisan mode is switched into from there, not chosen at login.
-  Future<String?> getUserRole(String uid) async {
-    final data = await _firestoreService.getDocument(_usersCollection, uid);
-    return data?["role"] as String?;
+  // Same idea, but a live stream of a given uid's own profile, updates
+  // automatically whenever that document changes, for example the moment
+  // releaseEscrowToArtisan credits an artisan's balance, instead of only
+  // reflecting it the next time the screen happens to refetch.
+  Stream<UserModel?> streamUserProfile(String uid) {
+    return _firestoreService
+        .streamDocument(_usersCollection, uid)
+        .map((data) => data == null ? null : UserModel.fromMap(data));
   }
 
   // Updates a user's name and phone number, for the edit profile screen.
+  // momoNetwork is only meaningful for an artisan, it's what
+  // releaseEscrowToArtisan uses alongside phone to register a Paystack
+  // payout recipient, so it's left out of the update entirely when null
+  // rather than writing over an existing value with nothing.
   Future<void> updateProfile({
     required String uid,
     required String name,
     required String phone,
+    String? momoNetwork,
   }) async {
     await _firestoreService.updateDocument(_usersCollection, uid, {
       "name": name,
       "phone": phone,
+      "momoNetwork": ?momoNetwork,
     });
   }
 
