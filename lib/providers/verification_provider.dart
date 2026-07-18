@@ -15,19 +15,19 @@ final verificationRepositoryProvider = Provider<VerificationRepository>((ref) {
   );
 });
 
-// The signed-in user's own Become an Artisan application, if they've
-// submitted one, for the application status screen.
+// The signed-in user's own Become an Artisan application, live, if
+// they've submitted one, for the application status screen.
 final myApplicationProvider =
-    FutureProvider.autoDispose<VerificationRequest?>((ref) {
+    StreamProvider.autoDispose<VerificationRequest?>((ref) {
   final uid = ref.watch(authRepositoryProvider).currentUserId;
-  if (uid == null) return Future.value(null);
-  return ref.watch(verificationRepositoryProvider).getMyApplication(uid);
+  if (uid == null) return Stream.value(null);
+  return ref.watch(verificationRepositoryProvider).streamMyApplication(uid);
 });
 
-// The admin review queue.
+// The admin review queue, live.
 final pendingApplicationsProvider =
-    FutureProvider.autoDispose<List<VerificationRequest>>((ref) {
-  return ref.watch(verificationRepositoryProvider).getPendingApplications();
+    StreamProvider.autoDispose<List<VerificationRequest>>((ref) {
+  return ref.watch(verificationRepositoryProvider).streamPendingApplications();
 });
 
 class VerificationController extends AsyncNotifier<void> {
@@ -48,7 +48,6 @@ class VerificationController extends AsyncNotifier<void> {
             bio: bio,
             document: document,
           );
-      ref.invalidate(myApplicationProvider);
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);
@@ -71,7 +70,6 @@ class VerificationController extends AsyncNotifier<void> {
             approved: approved,
             note: note,
           );
-      ref.invalidate(pendingApplicationsProvider);
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);

@@ -44,6 +44,17 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                 itemCount: items.length,
                 itemBuilder: (context, index) {
                   final message = items[index];
+                  if (message.system) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Center(
+                        child: Text(
+                          message.text,
+                          style: Theme.of(context).textTheme.labelSmall,
+                        ),
+                      ),
+                    );
+                  }
                   final mine = message.senderId == uid;
                   return Align(
                     alignment: mine

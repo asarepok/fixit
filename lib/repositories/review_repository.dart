@@ -26,15 +26,17 @@ class ReviewRepository {
     });
   }
 
-  // Public reviews for an artisan's profile, newest first.
-  Future<List<Review>> getReviewsForArtisan(String artisanId) async {
-    final docs = await _firestoreService.queryWhereOrdered(
-      _reviewsCollection,
-      "artisanId",
-      artisanId,
-      orderBy: "createdAt",
-      descending: true,
-    );
-    return docs.map(Review.fromMap).toList();
+  // Public reviews for an artisan's profile, live, newest first. Picks up
+  // a new review the moment submitReview writes it, no manual refresh.
+  Stream<List<Review>> streamReviewsForArtisan(String artisanId) {
+    return _firestoreService
+        .streamCollectionWhere(
+          _reviewsCollection,
+          "artisanId",
+          artisanId,
+          orderBy: "createdAt",
+          descending: true,
+        )
+        .map((docs) => docs.map(Review.fromMap).toList());
   }
 }

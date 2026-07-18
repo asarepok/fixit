@@ -41,16 +41,16 @@ final currentUserProfileProvider = StreamProvider.autoDispose<UserModel?>((
   return ref.watch(authRepositoryProvider).streamUserProfile(uid);
 });
 
-// Every account, for the admin Manage Users screen.
-final allUsersProvider = FutureProvider.autoDispose<List<UserModel>>((ref) {
-  return ref.watch(authRepositoryProvider).getAllUsers();
+// Every account, live, for the admin Manage Users screen.
+final allUsersProvider = StreamProvider.autoDispose<List<UserModel>>((ref) {
+  return ref.watch(authRepositoryProvider).streamAllUsers();
 });
 
-// A single user by uid, for admin screens showing a name next to a
+// A single user by uid, live, for admin screens showing a name next to a
 // customer/artisan/applicant id, keyed by that uid.
 final userByIdProvider =
-    FutureProvider.autoDispose.family<UserModel?, String>((ref, uid) {
-  return ref.watch(authRepositoryProvider).getUserById(uid);
+    StreamProvider.autoDispose.family<UserModel?, String>((ref, uid) {
+  return ref.watch(authRepositoryProvider).streamUserById(uid);
 });
 
 // Handles login, register, logout, and profile updates for the signed-in

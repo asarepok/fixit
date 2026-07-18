@@ -1,10 +1,11 @@
-// Mirrors a document in the "chats" collection, one thread per booking.
-// Ticket style, not real-time: ChatRepository fetches these with plain
-// reads, no live listeners.
+// Mirrors a document in the "chats" collection, one thread per
+// customer/artisan pair, shared across every booking between them.
 class ChatThread {
   final String id;
   final String customerId;
   final String artisanId;
+  // The booking that started this thread. Later bookings between the
+  // same two people reuse this same thread and don't change this field.
   final String bookingId;
   final String lastMessage;
   final DateTime? updatedAt;
@@ -46,12 +47,17 @@ class ChatMessage {
   final String senderId;
   final String text;
   final DateTime? sentAt;
+  // True for the auto-posted "New booking" divider the thread gets when
+  // a later booking between the same two people reuses it, false for a
+  // real message either side typed.
+  final bool system;
 
   const ChatMessage({
     required this.id,
     required this.senderId,
     required this.text,
     this.sentAt,
+    this.system = false,
   });
 
   factory ChatMessage.fromMap(Map<String, dynamic> map) {
@@ -60,6 +66,7 @@ class ChatMessage {
       senderId: map["senderId"] as String,
       text: map["text"] as String? ?? "",
       sentAt: (map["sentAt"] as dynamic)?.toDate(),
+      system: map["system"] as bool? ?? false,
     );
   }
 }

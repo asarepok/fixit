@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/payment_provider.dart';
 import '../../utils/extensions.dart';
+import '../../widgets/status_chip.dart';
 
 class ManagePaymentsScreen extends ConsumerWidget {
   const ManagePaymentsScreen({super.key});
@@ -66,8 +67,16 @@ class ManagePaymentsScreen extends ConsumerWidget {
                   return Card(
                     child: ListTile(
                       title: Text('GH₵ ${payment.amount.toStringAsFixed(2)}'),
-                      subtitle: Text(
-                        'Booking: ${payment.bookingId}\n${payment.status.value.replaceAll('_', ' ')}',
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Booking: ${payment.bookingId}'),
+                            const SizedBox(height: 6),
+                            StatusChip.payment(payment.status),
+                          ],
+                        ),
                       ),
                       isThreeLine: true,
                       trailing: canRefund

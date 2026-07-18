@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/constants.dart';
 import '../../models/booking_model.dart';
 import '../../providers/booking_provider.dart';
+import '../../widgets/status_chip.dart';
 
 class BookingsScreen extends ConsumerWidget {
   const BookingsScreen({super.key});
@@ -41,7 +42,7 @@ class _BookingCard extends StatelessWidget {
         booking.description.isEmpty ? 'Service request' : booking.description,
       ),
       subtitle: Text(booking.location),
-      trailing: Chip(label: Text(booking.status.value.replaceAll('_', ' '))),
+      trailing: StatusChip.booking(booking.status),
       onTap: () => context.push(AppRoutes.bookingDetail, extra: booking.id),
     ),
   );

@@ -9,6 +9,7 @@ import '../../providers/booking_provider.dart';
 import '../../providers/payment_provider.dart';
 import '../../utils/extensions.dart';
 import '../../widgets/primary_button.dart';
+import '../../widgets/status_chip.dart';
 import 'payment_waiting_screen.dart';
 
 class BookingDetailScreen extends ConsumerWidget {
@@ -83,10 +84,7 @@ class BookingDetailScreen extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.all(24),
             children: [
-              Text(
-                booking.status.value.replaceAll('_', ' ').toUpperCase(),
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
+              StatusChip.booking(booking.status),
               const SizedBox(height: 8),
               Text(
                 booking.description,
@@ -104,9 +102,7 @@ class BookingDetailScreen extends ConsumerWidget {
               if (booking.paymentStatus != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    'Payment: ${booking.paymentStatus!.value.replaceAll('_', ' ')}',
-                  ),
+                  child: StatusChip.payment(booking.paymentStatus!),
                 ),
               const SizedBox(height: 28),
               if (booking.status == BookingStatus.pending)

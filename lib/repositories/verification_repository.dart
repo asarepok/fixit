@@ -51,29 +51,31 @@ class VerificationRepository {
     });
   }
 
-  // The applicant's own most recent application, so the status screen can
-  // show pending/rejected without an admin's view.
-  Future<VerificationRequest?> getMyApplication(String artisanId) async {
-    final docs = await _firestoreService.queryWhereOrdered(
-      _requestsCollection,
-      "artisanId",
-      artisanId,
-      orderBy: "submittedAt",
-      descending: true,
-    );
-    if (docs.isEmpty) return null;
-    return VerificationRequest.fromMap(docs.first);
+  // The applicant's own most recent application, live, so the status
+  // screen can show pending/rejected without an admin's view, and updates
+  // itself the moment an admin approves or rejects it.
+  Stream<VerificationRequest?> streamMyApplication(String artisanId) {
+    return _firestoreService
+        .streamCollectionWhere(
+          _requestsCollection,
+          "artisanId",
+          artisanId,
+          orderBy: "submittedAt",
+          descending: true,
+        )
+        .map((docs) => docs.isEmpty ? null : VerificationRequest.fromMap(docs.first));
   }
 
-  // The admin review queue.
-  Future<List<VerificationRequest>> getPendingApplications() async {
-    final docs = await _firestoreService.queryWhereOrdered(
-      _requestsCollection,
-      "status",
-      VerificationStatus.pending.value,
-      orderBy: "submittedAt",
-    );
-    return docs.map(VerificationRequest.fromMap).toList();
+  // The admin review queue, live.
+  Stream<List<VerificationRequest>> streamPendingApplications() {
+    return _firestoreService
+        .streamCollectionWhere(
+          _requestsCollection,
+          "status",
+          VerificationStatus.pending.value,
+          orderBy: "submittedAt",
+        )
+        .map((docs) => docs.map(VerificationRequest.fromMap).toList());
   }
 
   // Approves or rejects an application, and updates the applicant's own

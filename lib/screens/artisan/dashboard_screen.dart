@@ -12,6 +12,7 @@ import '../../providers/booking_provider.dart';
 import '../../providers/chat_provider.dart';
 import '../../utils/extensions.dart';
 import '../../widgets/badged_icon.dart';
+import '../../widgets/status_chip.dart';
 import '../../widgets/user_name_label.dart';
 import '../chat/chat_screen.dart';
 
@@ -478,10 +479,7 @@ class _JobCardState extends ConsumerState<_JobCard> {
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 4),
-            Text(
-              booking.status.value.replaceAll('_', ' ').toUpperCase(),
-              style: Theme.of(context).textTheme.labelLarge,
-            ),
+            StatusChip.booking(booking.status),
             const SizedBox(height: 14),
             if (waitingOnPayment)
               Text(

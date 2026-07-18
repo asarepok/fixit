@@ -12,10 +12,10 @@ final reviewRepositoryProvider = Provider<ReviewRepository>((ref) {
   );
 });
 
-// Public reviews for an artisan's profile, keyed by artisanId.
+// Public reviews for an artisan's profile, live, keyed by artisanId.
 final artisanReviewsProvider =
-    FutureProvider.autoDispose.family<List<Review>, String>((ref, artisanId) {
-  return ref.watch(reviewRepositoryProvider).getReviewsForArtisan(artisanId);
+    StreamProvider.autoDispose.family<List<Review>, String>((ref, artisanId) {
+  return ref.watch(reviewRepositoryProvider).streamReviewsForArtisan(artisanId);
 });
 
 class ReviewController extends AsyncNotifier<void> {
@@ -24,7 +24,6 @@ class ReviewController extends AsyncNotifier<void> {
 
   Future<void> submitReview({
     required String bookingId,
-    required String artisanId,
     required int rating,
     String comment = "",
   }) async {
@@ -35,7 +34,6 @@ class ReviewController extends AsyncNotifier<void> {
             rating: rating,
             comment: comment,
           );
-      ref.invalidate(artisanReviewsProvider(artisanId));
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/booking_provider.dart';
+import '../../widgets/status_chip.dart';
 
 class ManageBookingsScreen extends ConsumerWidget {
   const ManageBookingsScreen({super.key});
@@ -34,9 +35,7 @@ class ManageBookingsScreen extends ConsumerWidget {
                     '${booking.location}\nCustomer: ${booking.customerId}',
                   ),
                   isThreeLine: true,
-                  trailing: Chip(
-                    label: Text(booking.status.value.replaceAll('_', ' ')),
-                  ),
+                  trailing: StatusChip.booking(booking.status),
                 ),
               );
             },

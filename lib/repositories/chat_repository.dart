@@ -5,19 +5,22 @@ import '../services/firestore_service.dart';
 
 const _chatsCollection = "chats";
 
-// One ticket-style thread per booking. getOrCreateChat is still a plain
-// one-time read (it only ever runs once, right when a booking is
-// created), but the threads list and a thread's messages are both live,
-// see streamMyChats and streamMessages.
+// One thread per customer/artisan pair, shared across every booking
+// between them. getOrCreateChat is still a plain one-time read (it only
+// ever runs once, right when a booking is created), but the threads list
+// and a thread's messages are both live, see streamMyChats and
+// streamMessages.
 class ChatRepository {
   final FirestoreService _firestoreService;
 
   ChatRepository(this._firestoreService);
 
-  // Returns the existing thread for this booking, or creates one. Called
-  // once, right when a booking is created, by BookingController, so a
-  // chat always exists from the start rather than being created lazily
-  // on first message.
+  // Returns the existing thread between this customer and artisan, or
+  // creates one. Called once, right when a booking is created, by
+  // BookingController, so a chat always exists from the start rather
+  // than being created lazily on first message. A later booking between
+  // the same two people reuses the same thread instead of starting a
+  // new one.
   Future<String> getOrCreateChat({
     required String customerId,
     required String artisanId,
@@ -25,14 +28,21 @@ class ChatRepository {
   }) async {
     final existing = await _firestoreService.queryWhereTwo(
       _chatsCollection,
-      "bookingId",
-      bookingId,
       "customerId",
       customerId,
+      "artisanId",
+      artisanId,
     );
 
     if (existing.isNotEmpty) {
-      return existing.first["id"] as String;
+      final chatId = existing.first["id"] as String;
+      await sendMessage(
+        chatId: chatId,
+        senderId: customerId,
+        text: "New booking · $bookingId",
+        system: true,
+      );
+      return chatId;
     }
 
     final thread = ChatThread(
@@ -108,11 +118,13 @@ class ChatRepository {
     required String chatId,
     required String senderId,
     required String text,
+    bool system = false,
   }) async {
     await _firestoreService.addDocument("$_chatsCollection/$chatId/messages", {
       "senderId": senderId,
       "text": text,
       "sentAt": DateTime.now().toUtc(),
+      "system": system,
     });
 
     await _firestoreService.updateDocument(_chatsCollection, chatId, {

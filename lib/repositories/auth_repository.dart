@@ -54,7 +54,7 @@ class AuthRepository {
     await _firestoreService.setDocument(
       _usersCollection,
       user.uid,
-      user.toMap(),
+      {...user.toMap(), "balance": 0},
     );
   }
 
@@ -119,21 +119,19 @@ class AuthRepository {
     });
   }
 
-  // Every account, for the admin Manage Users screen, no filtering.
-  Future<List<UserModel>> getAllUsers() async {
-    final docs = await _firestoreService.getCollectionOrdered(
-      _usersCollection,
-      orderBy: "name",
-    );
-    return docs.map(UserModel.fromMap).toList();
+  // Every account, live, for the admin Manage Users screen, no filtering.
+  Stream<List<UserModel>> streamAllUsers() {
+    return _firestoreService
+        .streamCollectionOrdered(_usersCollection, orderBy: "name")
+        .map((docs) => docs.map(UserModel.fromMap).toList());
   }
 
-  // A single user by uid, for admin screens that only have an id on hand,
-  // for example a booking's customerId/artisanId or an application's
+  // A single user by uid, live, for admin screens that only have an id on
+  // hand, for example a booking's customerId/artisanId or an application's
   // artisanId, and need to show a name instead.
-  Future<UserModel?> getUserById(String uid) async {
-    final data = await _firestoreService.getDocument(_usersCollection, uid);
-    if (data == null) return null;
-    return UserModel.fromMap(data);
+  Stream<UserModel?> streamUserById(String uid) {
+    return _firestoreService
+        .streamDocument(_usersCollection, uid)
+        .map((data) => data == null ? null : UserModel.fromMap(data));
   }
 }
