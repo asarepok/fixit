@@ -23,6 +23,14 @@ final chatMessagesProvider =
   return ref.watch(chatRepositoryProvider).streamMessages(chatId);
 });
 
+// A single thread's own details, live, keyed by chatId. Lets the thread
+// screen show who the other participant is, since navigating to it only
+// ever passes the chatId.
+final chatThreadProvider =
+    StreamProvider.autoDispose.family<ChatThread?, String>((ref, chatId) {
+  return ref.watch(chatRepositoryProvider).streamChatThread(chatId);
+});
+
 class ChatController extends AsyncNotifier<void> {
   @override
   Future<void> build() async {}

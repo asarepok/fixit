@@ -39,7 +39,7 @@ class ChatRepository {
       await sendMessage(
         chatId: chatId,
         senderId: customerId,
-        text: "New booking · $bookingId",
+        text: "New booking request",
         system: true,
       );
       return chatId;
@@ -53,6 +53,15 @@ class ChatRepository {
     );
 
     return _firestoreService.addDocument(_chatsCollection, thread.toCreateMap());
+  }
+
+  // A single thread's own details, live, so a chat screen that only has a
+  // chatId on hand (every navigation to one only ever passes the id) can
+  // show who the other side is.
+  Stream<ChatThread?> streamChatThread(String chatId) {
+    return _firestoreService
+        .streamDocumentWithId(_chatsCollection, chatId)
+        .map((data) => data == null ? null : ChatThread.fromMap(data));
   }
 
   List<ChatThread> _mergeAndSort(
