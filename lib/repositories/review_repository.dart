@@ -39,4 +39,16 @@ class ReviewRepository {
         )
         .map((docs) => docs.map(Review.fromMap).toList());
   }
+
+  // Whether this booking already has a review, so the booking detail
+  // screen can hide the "Rate Artisan" button instead of sending the
+  // customer to a form the Cloud Function will just reject as a dupe.
+  Future<bool> hasReviewForBooking(String bookingId) async {
+    final docs = await _firestoreService.queryWhere(
+      _reviewsCollection,
+      "bookingId",
+      bookingId,
+    );
+    return docs.isNotEmpty;
+  }
 }

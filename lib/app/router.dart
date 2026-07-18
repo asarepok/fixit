@@ -119,7 +119,8 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.rateArtisan,
-      builder: (context, state) => const RateArtisanScreen(),
+      builder: (context, state) =>
+          RateArtisanScreen(args: state.extra as RateArtisanArgs),
     ),
     GoRoute(
       path: AppRoutes.bookingDetail,

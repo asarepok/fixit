@@ -18,6 +18,14 @@ final artisanReviewsProvider =
   return ref.watch(reviewRepositoryProvider).streamReviewsForArtisan(artisanId);
 });
 
+// Whether the signed-in customer has already reviewed this booking, one
+// shot, so the booking detail screen knows whether to offer the Rate
+// Artisan button at all.
+final hasReviewForBookingProvider =
+    FutureProvider.autoDispose.family<bool, String>((ref, bookingId) {
+  return ref.watch(reviewRepositoryProvider).hasReviewForBooking(bookingId);
+});
+
 class ReviewController extends AsyncNotifier<void> {
   @override
   Future<void> build() async {}
