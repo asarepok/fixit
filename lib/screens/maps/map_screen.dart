@@ -14,15 +14,38 @@ class MapScreen extends ConsumerWidget {
     final positionAsync = ref.watch(currentPositionProvider);
     final nearbyAsync = ref.watch(nearbyArtisansProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('FixIt Map')),
+      appBar: AppBar(title: const Text('Nearby Artisans')),
       body: positionAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Text(
-              'Location is needed to show nearby artisans.\n$error',
-              textAlign: TextAlign.center,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.location_off_outlined,
+                  size: 48,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  "We need your location to show nearby artisans on the map.",
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  error.toString().replaceFirst('Exception: ', ''),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 20),
+                FilledButton(
+                  onPressed: () => ref.invalidate(currentPositionProvider),
+                  child: const Text('Try Again'),
+                ),
+              ],
             ),
           ),
         ),
