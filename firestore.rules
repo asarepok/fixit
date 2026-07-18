@@ -96,6 +96,20 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ---- portfolio ----
+    // An artisan's "my work" photos on their public profile. Public read,
+    // an artisan can only add to or remove from their own gallery, never
+    // someone else's, and a photo is never edited in place, only added or
+    // deleted.
+    match /portfolio/{photoId} {
+      allow read: if true;
+      allow create: if isSignedIn() &&
+        request.resource.data.artisanId == request.auth.uid;
+      allow update: if false;
+      allow delete: if isSignedIn() &&
+        (resource.data.artisanId == request.auth.uid || isAdmin());
+    }
+
     // ---- chats & messages ----
     // TEMP-DEMO-INSECURE: participant checks disabled to unblock a demo,
     // any signed-in user can read or write any thread/message right now.

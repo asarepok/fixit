@@ -52,6 +52,8 @@ class AppRoutes {
   static const paymentWaiting = "/payment-waiting";
   static const chatThread = "/chat-thread";
   static const map = "/map";
+  static const managePortfolio = "/manage-portfolio";
+  static const locationPicker = "/location-picker";
   static const adminDashboard = "/admin-dashboard";
   static const managePayments = "/manage-payments";
 }

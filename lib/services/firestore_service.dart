@@ -30,6 +30,10 @@ class FirestoreService {
     await _firestore.collection(collection).doc(id).update(data);
   }
 
+  Future<void> deleteDocument(String collection, String id) async {
+    await _firestore.collection(collection).doc(id).delete();
+  }
+
   Future<Map<String, dynamic>?> getDocument(
     String collection,
     String id,

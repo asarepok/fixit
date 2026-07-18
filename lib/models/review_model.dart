@@ -9,6 +9,7 @@ class Review {
   final String artisanId;
   final int rating;
   final String comment;
+  final String? photoUrl;
   final DateTime? createdAt;
 
   const Review({
@@ -18,6 +19,7 @@ class Review {
     required this.artisanId,
     required this.rating,
     this.comment = "",
+    this.photoUrl,
     this.createdAt,
   });
 
@@ -29,6 +31,7 @@ class Review {
       artisanId: map["artisanId"] as String,
       rating: (map["rating"] as num).toInt(),
       comment: map["comment"] as String? ?? "",
+      photoUrl: map["photoUrl"] as String?,
       createdAt: (map["createdAt"] as dynamic)?.toDate(),
     );
   }
@@ -40,6 +43,7 @@ class Review {
       "artisanId": artisanId,
       "rating": rating,
       "comment": comment,
+      "photoUrl": photoUrl,
     };
   }
 }

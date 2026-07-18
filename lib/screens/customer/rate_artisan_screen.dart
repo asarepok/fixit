@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../app/theme.dart';
 import '../../providers/review_provider.dart';
@@ -23,11 +26,20 @@ class RateArtisanScreen extends ConsumerStatefulWidget {
 class _RateArtisanScreenState extends ConsumerState<RateArtisanScreen> {
   final _commentController = TextEditingController();
   int _rating = 0;
+  XFile? _photo;
 
   @override
   void dispose() {
     _commentController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickPhoto() async {
+    final file = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
+    if (file != null && mounted) setState(() => _photo = file);
   }
 
   Future<void> _submit() async {
@@ -40,6 +52,7 @@ class _RateArtisanScreenState extends ConsumerState<RateArtisanScreen> {
             bookingId: widget.args.bookingId,
             rating: _rating,
             comment: _commentController.text.trim(),
+            photo: _photo,
           );
       if (mounted) {
         context.showSnack('Thanks for the review!');
@@ -100,11 +113,80 @@ class _RateArtisanScreenState extends ConsumerState<RateArtisanScreen> {
               hintText: 'Share what went well.',
             ),
           ),
+          const SizedBox(height: 20),
+          Text(
+            'ADD A PHOTO (OPTIONAL)',
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+          const SizedBox(height: 8),
+          _PhotoPicker(photo: _photo, onTap: _pickPhoto, onClear: () => setState(() => _photo = null)),
           const SizedBox(height: 28),
           loading
               ? const Center(child: CircularProgressIndicator())
               : PrimaryButton(text: 'Submit Review', onPressed: _submit),
         ],
+      ),
+    );
+  }
+}
+
+class _PhotoPicker extends StatelessWidget {
+  const _PhotoPicker({required this.photo, required this.onTap, required this.onClear});
+  final XFile? photo;
+  final VoidCallback onTap;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    if (photo != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: Stack(
+          children: [
+            Image.file(
+              File(photo!.path),
+              height: 160,
+              width: double.infinity,
+              fit: BoxFit.cover,
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(999),
+                onTap: onClear,
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(
+                    color: Colors.black54,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.close_rounded, color: Colors.white, size: 18),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: Container(
+        height: 100,
+        decoration: BoxDecoration(
+          border: Border.all(color: colorScheme.outlineVariant),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add_a_photo_outlined, color: colorScheme.primary),
+            const SizedBox(height: 6),
+            const Text('Tap to add a photo of the work'),
+          ],
+        ),
       ),
     );
   }

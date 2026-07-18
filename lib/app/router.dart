@@ -21,6 +21,7 @@ import '../screens/customer/edit_profile_screen.dart';
 import '../screens/customer/rate_artisan_screen.dart';
 import '../screens/customer/nearby_artisans_screen.dart';
 import '../screens/artisan/dashboard_screen.dart';
+import '../screens/artisan/manage_portfolio_screen.dart';
 import '../screens/onboarding/artisan_application_screen.dart';
 import '../screens/onboarding/artisan_application_status_screen.dart';
 import '../screens/onboarding/become_artisan_screen.dart';
@@ -103,6 +104,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.map,
       builder: (context, state) => const MapScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.managePortfolio,
+      builder: (context, state) => const ManagePortfolioScreen(),
     ),
     GoRoute(
       path: AppRoutes.bookingDetails,

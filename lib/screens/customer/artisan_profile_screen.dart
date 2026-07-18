@@ -4,11 +4,18 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/constants.dart';
 import '../../app/theme.dart';
+import '../../models/portfolio_model.dart';
 import '../../models/review_model.dart';
 import '../../models/user_model.dart';
+import '../../providers/portfolio_provider.dart';
 import '../../providers/review_provider.dart';
 import '../../utils/helpers.dart';
+import '../../widgets/grouped_card.dart';
+import '../../widgets/photo_viewer.dart';
 import '../../widgets/primary_button.dart';
+import '../../widgets/section_heading.dart';
+import '../../widgets/user_avatar.dart';
+import '../../widgets/user_name_label.dart';
 
 class ArtisanProfileScreen extends ConsumerWidget {
   const ArtisanProfileScreen({super.key, this.artisan});
@@ -21,6 +28,7 @@ class ArtisanProfileScreen extends ConsumerWidget {
         ? artisan!.profession!
         : 'Verified artisan';
     final rating = artisan?.averageRating ?? 0;
+    final reviewCount = artisan?.ratingCount ?? 0;
     final initials = name
         .split(RegExp(r'\s+'))
         .take(2)
@@ -64,21 +72,8 @@ class ArtisanProfileScreen extends ConsumerWidget {
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Center(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.star_rounded, color: AppColors.accentOf(context)),
-                        const SizedBox(width: 4),
-                        Text(
-                          rating == 0
-                              ? 'New artisan'
-                              : '${rating.toStringAsFixed(1)} (${artisan?.ratingCount ?? 0})',
-                        ),
-                      ],
-                    ),
-                  ),
+                  const SizedBox(height: 20),
+                  _RatingSummary(rating: rating, reviewCount: reviewCount),
                   const SizedBox(height: 32),
                   Text('ABOUT', style: Theme.of(context).textTheme.labelLarge),
                   const SizedBox(height: 10),
@@ -89,9 +84,13 @@ class ArtisanProfileScreen extends ConsumerWidget {
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                   if (artisan != null) ...[
+                    _PortfolioSection(artisanId: artisan!.uid),
                     const SizedBox(height: 32),
-                    Text('REVIEWS', style: Theme.of(context).textTheme.labelLarge),
-                    const SizedBox(height: 10),
+                    SectionHeading(
+                      eyebrow: 'Feedback',
+                      title: reviewCount == 0 ? 'Reviews' : 'Reviews ($reviewCount)',
+                    ),
+                    const SizedBox(height: 12),
                     _ReviewsList(artisanId: artisan!.uid),
                   ],
                 ],
@@ -110,6 +109,105 @@ class ArtisanProfileScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// A grid of the artisan's own work photos, if they've added any. Hidden
+// entirely rather than showing an empty state, an artisan with no
+// portfolio yet just doesn't get this section on their public profile.
+class _PortfolioSection extends ConsumerWidget {
+  const _PortfolioSection({required this.artisanId});
+  final String artisanId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final portfolioAsync = ref.watch(portfolioProvider(artisanId));
+    final items = portfolioAsync.valueOrNull ?? const <PortfolioItem>[];
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionHeading(eyebrow: 'Portfolio', title: 'My Work'),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 96,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: items.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final item = items[index];
+                return ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: InkWell(
+                    onTap: () => openPhoto(context, item.imageUrl),
+                    child: Image.network(
+                      item.imageUrl,
+                      width: 96,
+                      height: 96,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// The number a customer actually scans for before booking, given its own
+// visual weight instead of sharing a line with the profession caption.
+class _RatingSummary extends StatelessWidget {
+  const _RatingSummary({required this.rating, required this.reviewCount});
+  final double rating;
+  final int reviewCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    if (rating == 0) {
+      return Center(
+        child: Text(
+          'New artisan · no reviews yet',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      );
+    }
+    return Center(
+      child: Column(
+        children: [
+          Text(
+            rating.toStringAsFixed(1),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: List.generate(
+              5,
+              (index) => Icon(
+                index < rating.round() ? Icons.star_rounded : Icons.star_outline_rounded,
+                size: 18,
+                color: AppColors.accentOf(context),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            reviewCount == 1 ? '1 review' : '$reviewCount reviews',
+            style: TextStyle(fontSize: 12.5, color: colorScheme.onSurfaceVariant),
+          ),
+        ],
       ),
     );
   }
@@ -138,7 +236,8 @@ class _ReviewsList extends ConsumerWidget {
             style: Theme.of(context).textTheme.bodyMedium,
           );
         }
-        return Column(
+        return GroupedCard(
+          indent: 60,
           children: reviews.map((review) => _ReviewTile(review: review)).toList(),
         );
       },
@@ -154,35 +253,65 @@ class _ReviewTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Column(
+      padding: const EdgeInsets.all(14),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Row(
-                children: List.generate(
-                  5,
-                  (index) => Icon(
-                    index < review.rating ? Icons.star_rounded : Icons.star_outline_rounded,
-                    size: 16,
-                    color: AppColors.accentOf(context),
+          UserAvatar(uid: review.customerId, radius: 18),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: UserNameLabel(
+                        uid: review.customerId,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                    if (review.createdAt != null)
+                      Text(
+                        timeAgo(review.createdAt!),
+                        style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: List.generate(
+                    5,
+                    (index) => Icon(
+                      index < review.rating ? Icons.star_rounded : Icons.star_outline_rounded,
+                      size: 15,
+                      color: AppColors.accentOf(context),
+                    ),
                   ),
                 ),
-              ),
-              if (review.createdAt != null) ...[
-                const SizedBox(width: 8),
-                Text(
-                  timeAgo(review.createdAt!),
-                  style: TextStyle(fontSize: 11.5, color: colorScheme.onSurfaceVariant),
-                ),
+                if (review.comment.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(review.comment, style: Theme.of(context).textTheme.bodyMedium),
+                ],
+                if (review.photoUrl != null) ...[
+                  const SizedBox(height: 8),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: () => openPhoto(context, review.photoUrl!),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.network(
+                        review.photoUrl!,
+                        height: 90,
+                        width: 90,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
-          if (review.comment.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(review.comment, style: Theme.of(context).textTheme.bodyMedium),
-          ],
         ],
       ),
     );

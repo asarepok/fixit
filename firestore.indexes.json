@@ -25,6 +25,14 @@
       ]
     },
     {
+      "collectionGroup": "portfolio",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "artisanId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "verification_requests",
       "queryScope": "COLLECTION",
       "fields": [

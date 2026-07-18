@@ -6,26 +6,10 @@ import '../../app/constants.dart';
 import '../../app/theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/app_mode_provider.dart';
-import '../../providers/location_provider.dart';
-import '../../utils/extensions.dart';
 import '../../widgets/grouped_card.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
-
-  Future<void> _updateMyLocation(BuildContext context, WidgetRef ref) async {
-    try {
-      final position = await ref
-          .read(locationServiceProvider)
-          .getCurrentLocation();
-      await ref
-          .read(authControllerProvider.notifier)
-          .updateMyLocation(position.latitude, position.longitude);
-      if (context.mounted) context.showSnack('Location updated successfully');
-    } catch (error) {
-      if (context.mounted) context.showSnack(error.toString());
-    }
-  }
 
   Future<void> _logout(BuildContext context, WidgetRef ref) async {
     await ref.read(authControllerProvider.notifier).logout();
@@ -117,11 +101,12 @@ class ProfileScreen extends ConsumerWidget {
                     title: 'Edit Profile',
                     onTap: () => context.push(AppRoutes.editProfile),
                   ),
-                  _ProfileOption(
-                    icon: Icons.location_on_outlined,
-                    title: 'Update My Location',
-                    onTap: () => _updateMyLocation(context, ref),
-                  ),
+                  if (user.isArtisan)
+                    _ProfileOption(
+                      icon: Icons.photo_library_outlined,
+                      title: 'My Work Photos',
+                      onTap: () => context.push(AppRoutes.managePortfolio),
+                    ),
                   _ProfileOption(
                     icon: Icons.settings_outlined,
                     title: 'Settings',

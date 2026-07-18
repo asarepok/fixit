@@ -14,10 +14,11 @@ export const submitReview = onCall(async (request) => {
     throw new HttpsError("unauthenticated", "Sign in first.");
   }
 
-  const {bookingId, rating, comment} = request.data as {
+  const {bookingId, rating, comment, photoUrl} = request.data as {
     bookingId?: string;
     rating?: number;
     comment?: string;
+    photoUrl?: string;
   };
 
   if (!bookingId) {
@@ -74,6 +75,7 @@ export const submitReview = onCall(async (request) => {
       artisanId: booking.artisanId,
       rating,
       comment: comment ?? "",
+      photoUrl: photoUrl ?? null,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 

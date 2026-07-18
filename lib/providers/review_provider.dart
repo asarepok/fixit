@@ -1,14 +1,17 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../models/review_model.dart';
 import '../repositories/review_repository.dart';
 import 'auth_provider.dart';
 import 'payment_provider.dart';
+import 'verification_provider.dart';
 
 final reviewRepositoryProvider = Provider<ReviewRepository>((ref) {
   return ReviewRepository(
     ref.watch(functionsServiceProvider),
     ref.watch(firestoreServiceProvider),
+    ref.watch(storageServiceProvider),
   );
 });
 
@@ -18,12 +21,13 @@ final artisanReviewsProvider =
   return ref.watch(reviewRepositoryProvider).streamReviewsForArtisan(artisanId);
 });
 
-// Whether the signed-in customer has already reviewed this booking, one
-// shot, so the booking detail screen knows whether to offer the Rate
-// Artisan button at all.
+// Whether the signed-in customer has already reviewed this booking, live,
+// so the booking detail screen and bookings list flip straight from
+// "Rate this job" to "Reviewed" the instant submitReview writes, instead
+// of only after the screen happens to rebuild for some other reason.
 final hasReviewForBookingProvider =
-    FutureProvider.autoDispose.family<bool, String>((ref, bookingId) {
-  return ref.watch(reviewRepositoryProvider).hasReviewForBooking(bookingId);
+    StreamProvider.autoDispose.family<bool, String>((ref, bookingId) {
+  return ref.watch(reviewRepositoryProvider).streamHasReviewForBooking(bookingId);
 });
 
 class ReviewController extends AsyncNotifier<void> {
@@ -34,13 +38,17 @@ class ReviewController extends AsyncNotifier<void> {
     required String bookingId,
     required int rating,
     String comment = "",
+    XFile? photo,
   }) async {
     state = const AsyncLoading();
     try {
+      final customerId = ref.read(authRepositoryProvider).currentUserId!;
       await ref.read(reviewRepositoryProvider).submitReview(
             bookingId: bookingId,
+            customerId: customerId,
             rating: rating,
             comment: comment,
+            photo: photo,
           );
       state = const AsyncData(null);
     } catch (e, st) {
