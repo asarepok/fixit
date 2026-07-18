@@ -19,12 +19,18 @@ class FixItGHApp extends ConsumerWidget {
   static final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
   Future<void> _registerPushToken(WidgetRef ref, String uid) async {
+    final authRepository = ref.read(authRepositoryProvider);
+    // Respect a user who's already turned notifications off in Settings,
+    // otherwise this would silently re-enable them on every app launch.
+    final profile = await authRepository.getCurrentUserProfile();
+    if (profile != null && !profile.notificationsEnabled) return;
+
     final notificationService = ref.read(notificationServiceProvider);
     final granted = await notificationService.requestPermission();
     if (!granted) return;
     final token = await notificationService.getToken();
     if (token != null) {
-      await ref.read(authRepositoryProvider).updateFcmToken(uid, token);
+      await authRepository.updateFcmToken(uid, token);
     }
   }
 
@@ -39,7 +45,12 @@ class FixItGHApp extends ConsumerWidget {
       final token = next.valueOrNull;
       final uid = ref.read(authStateProvider).valueOrNull;
       if (token != null && uid != null) {
-        ref.read(authRepositoryProvider).updateFcmToken(uid, token);
+        final authRepository = ref.read(authRepositoryProvider);
+        authRepository.getCurrentUserProfile().then((profile) {
+          if (profile == null || profile.notificationsEnabled) {
+            authRepository.updateFcmToken(uid, token);
+          }
+        });
       }
     });
 

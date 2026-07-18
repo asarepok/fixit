@@ -112,10 +112,12 @@ class AuthRepository {
     required String uid,
     required double latitude,
     required double longitude,
+    String? label,
   }) async {
     await _firestoreService.updateDocument(_usersCollection, uid, {
       "latitude": latitude,
       "longitude": longitude,
+      "locationLabel": ?label,
     });
   }
 
@@ -125,6 +127,17 @@ class AuthRepository {
   Future<void> updateFcmToken(String uid, String token) async {
     await _firestoreService.updateDocument(_usersCollection, uid, {
       "fcmToken": token,
+    });
+  }
+
+  // Toggles whether this user wants push notifications at all. Turning it
+  // off also clears the saved token, so a Cloud Function's own "no token,
+  // don't send" check does the actual muting server-side, this app never
+  // has to tell each function about the preference separately.
+  Future<void> setNotificationsEnabled(String uid, bool enabled) async {
+    await _firestoreService.updateDocument(_usersCollection, uid, {
+      "notificationsEnabled": enabled,
+      if (!enabled) "fcmToken": null,
     });
   }
 

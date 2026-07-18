@@ -131,13 +131,14 @@ class AuthController extends AsyncNotifier<void> {
     }
   }
 
-  // Saves the signed-in user's current location, called from the profile
-  // screen's "Update My Location" button. Does not set a loading state
-  // since the profile screen shows its own snackbar instead of a spinner.
-  Future<void> updateMyLocation(double latitude, double longitude) async {
+  // Saves the signed-in user's current location, called from the Home
+  // screen's location display and the profile screen's "My Location"
+  // row. Does not set a loading state, both callers show their own
+  // snackbar instead of a spinner.
+  Future<void> updateMyLocation(double latitude, double longitude, {String? label}) async {
     final repo = ref.read(authRepositoryProvider);
     final uid = repo.currentUserId!;
-    await repo.updateMyLocation(uid: uid, latitude: latitude, longitude: longitude);
+    await repo.updateMyLocation(uid: uid, latitude: latitude, longitude: longitude, label: label);
   }
 }
 

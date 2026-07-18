@@ -1,6 +1,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'auth_provider.dart';
 import '../services/notification_service.dart';
 
 final notificationServiceProvider =
@@ -20,3 +21,36 @@ final foregroundMessageProvider =
 final tokenRefreshProvider = StreamProvider.autoDispose<String>((ref) {
   return ref.watch(notificationServiceProvider).onTokenRefresh;
 });
+
+// The Settings screen's push-notifications switch. Turning it on asks
+// for permission and saves a fresh token, same as a first login would,
+// turning it off just records the preference, AuthRepository takes care
+// of clearing the token that goes with it.
+class NotificationController extends AsyncNotifier<void> {
+  @override
+  Future<void> build() async {}
+
+  Future<void> setEnabled(bool enabled) async {
+    state = const AsyncLoading();
+    try {
+      final authRepository = ref.read(authRepositoryProvider);
+      final uid = authRepository.currentUserId!;
+      if (enabled) {
+        final granted =
+            await ref.read(notificationServiceProvider).requestPermission();
+        if (granted) {
+          final token = await ref.read(notificationServiceProvider).getToken();
+          if (token != null) await authRepository.updateFcmToken(uid, token);
+        }
+      }
+      await authRepository.setNotificationsEnabled(uid, enabled);
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+}
+
+final notificationControllerProvider =
+    AsyncNotifierProvider<NotificationController, void>(NotificationController.new);

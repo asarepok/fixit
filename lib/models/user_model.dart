@@ -16,7 +16,10 @@
 // firestore.rules. fcmToken is this device's push token, set by
 // NotificationService on login/token refresh, used server-side by the
 // Cloud Functions in functions/src/notifications to address a push at
-// this user.
+// this user. notificationsEnabled is the user's own on/off preference,
+// defaults true; turning it off also clears fcmToken (see
+// AuthRepository.setNotificationsEnabled), so muting happens server-side
+// for free, a Cloud Function with no token to send to just skips it.
 class UserModel {
 
   final String uid;
@@ -33,6 +36,12 @@ class UserModel {
 
   final double? longitude;
 
+  // A human-readable label for latitude/longitude ("Tesano, Accra"),
+  // resolved once by LocationPickerScreen at the moment the location is
+  // set, not re-resolved on every screen that wants to show it, see
+  // AuthRepository.updateMyLocation.
+  final String? locationLabel;
+
   final String artisanStatus;
 
   final String? profession;
@@ -48,6 +57,8 @@ class UserModel {
   final double balance;
 
   final String? fcmToken;
+
+  final bool notificationsEnabled;
 
 
 
@@ -67,6 +78,8 @@ class UserModel {
 
     this.longitude,
 
+    this.locationLabel,
+
     this.artisanStatus = "none",
 
     this.profession,
@@ -82,6 +95,8 @@ class UserModel {
     this.balance = 0,
 
     this.fcmToken,
+
+    this.notificationsEnabled = true,
 
   });
 
@@ -118,6 +133,8 @@ class UserModel {
 
       longitude: (map["longitude"] as num?)?.toDouble(),
 
+      locationLabel: map["locationLabel"] as String?,
+
       artisanStatus: map["artisanStatus"] as String? ?? "none",
 
       profession: map["profession"] as String?,
@@ -133,6 +150,8 @@ class UserModel {
       balance: (map["balance"] as num?)?.toDouble() ?? 0,
 
       fcmToken: map["fcmToken"] as String?,
+
+      notificationsEnabled: map["notificationsEnabled"] as bool? ?? true,
 
     );
 
