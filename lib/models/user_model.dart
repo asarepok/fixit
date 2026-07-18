@@ -13,7 +13,10 @@
 // is an artisan's running total from released payments, only ever changed
 // by releaseEscrowToArtisan (and eventually a cashout function) through
 // the Admin SDK, never directly writable by the client, see
-// firestore.rules.
+// firestore.rules. fcmToken is this device's push token, set by
+// NotificationService on login/token refresh, used server-side by the
+// Cloud Functions in functions/src/notifications to address a push at
+// this user.
 class UserModel {
 
   final String uid;
@@ -43,6 +46,8 @@ class UserModel {
   final String? momoNetwork;
 
   final double balance;
+
+  final String? fcmToken;
 
 
 
@@ -75,6 +80,8 @@ class UserModel {
     this.momoNetwork,
 
     this.balance = 0,
+
+    this.fcmToken,
 
   });
 
@@ -124,6 +131,8 @@ class UserModel {
       momoNetwork: map["momoNetwork"] as String?,
 
       balance: (map["balance"] as num?)?.toDouble() ?? 0,
+
+      fcmToken: map["fcmToken"] as String?,
 
     );
 

@@ -119,6 +119,15 @@ class AuthRepository {
     });
   }
 
+  // Saves this device's push token, called by pushTokenProvider on login
+  // and whenever FCM reissues one. Not part of updateProfile/toMap, a
+  // profile edit should never accidentally overwrite this.
+  Future<void> updateFcmToken(String uid, String token) async {
+    await _firestoreService.updateDocument(_usersCollection, uid, {
+      "fcmToken": token,
+    });
+  }
+
   // Every account, live, for the admin Manage Users screen, no filtering.
   Stream<List<UserModel>> streamAllUsers() {
     return _firestoreService
