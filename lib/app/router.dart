@@ -28,6 +28,7 @@ import '../screens/onboarding/become_artisan_screen.dart';
 import '../screens/admin/admin_dashboard_screen.dart';
 import '../screens/admin/manage_payments_screen.dart';
 import '../screens/settings/settings_screen.dart';
+import '../screens/settings/location_picker_screen.dart';
 import '../screens/maps/map_screen.dart';
 import '../screens/chat/chat_thread_screen.dart';
 import '../models/user_model.dart';
@@ -96,6 +97,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.settings,
       builder: (context, state) => const SettingsScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.locationPicker,
+      builder: (context, state) => const LocationPickerScreen(),
     ),
     GoRoute(
       path: AppRoutes.nearbyArtisans,

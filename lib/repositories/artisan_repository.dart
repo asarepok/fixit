@@ -1,5 +1,3 @@
-import 'package:geolocator/geolocator.dart';
-
 import '../models/user_model.dart';
 import '../services/firestore_service.dart';
 import '../utils/helpers.dart';
@@ -37,7 +35,10 @@ class ArtisanRepository {
   // Artisans who have a saved location, paired with their distance from
   // the given position and sorted closest first. Artisans with no saved
   // location are left out since there is nothing to measure distance from.
-  Future<List<NearbyArtisan>> getNearbyArtisans(Position position) async {
+  // Takes plain coordinates rather than a geolocator Position, the caller
+  // may be sourcing them from a live GPS read or (now, normally) the
+  // customer's own saved location.
+  Future<List<NearbyArtisan>> getNearbyArtisans(double latitude, double longitude) async {
     final artisans = await getArtisans();
 
     final nearby = artisans
@@ -45,8 +46,8 @@ class ArtisanRepository {
         .map((a) => NearbyArtisan(
               artisan: a,
               distanceKm: calculateDistanceKm(
-                position.latitude,
-                position.longitude,
+                latitude,
+                longitude,
                 a.latitude!,
                 a.longitude!,
               ),

@@ -25,7 +25,13 @@ val mapsApiKey: String = localProperties.getProperty("MAPS_API_KEY", "")
 
 android {
     namespace = "com.example.fixit_gh"
-    compileSdk = flutter.compileSdkVersion
+    // Pinned rather than left at flutter.compileSdkVersion (33 on this
+    // Flutter SDK), geocoding_android's own dependencies (androidx
+    // fragment/window/activity/lifecycle) need compileSdk 34+. This only
+    // changes what API surface the build compiles against, not minSdk
+    // (which devices can install the app) or targetSdk (runtime
+    // behavior), so it's safe on its own.
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

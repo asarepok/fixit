@@ -6,14 +6,31 @@ import '../../app/constants.dart';
 import '../../providers/artisan_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/app_mode_provider.dart';
+import '../../utils/extensions.dart';
 import '../../widgets/artisan_card.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/grouped_card.dart';
 import '../../widgets/section_heading.dart';
 import '../../widgets/service_category_card.dart';
+import '../settings/location_picker_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
+
+  Future<void> _pickLocation(BuildContext context, WidgetRef ref) async {
+    final picked = await context.push<PickedLocation>(AppRoutes.locationPicker);
+    if (picked == null) return;
+    try {
+      await ref.read(authControllerProvider.notifier).updateMyLocation(
+            picked.position.latitude,
+            picked.position.longitude,
+            label: picked.address,
+          );
+      if (context.mounted) context.showSnack('Location updated.');
+    } catch (error) {
+      if (context.mounted) context.showSnack(error.toString());
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -41,10 +58,9 @@ class HomeScreen extends ConsumerWidget {
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                   ),
-                  _HeaderIconButton(
-                    icon: Icons.map_outlined,
-                    tooltip: 'Map',
-                    onTap: () => context.push(AppRoutes.map),
+                  _LocationDisplay(
+                    label: user?.locationLabel,
+                    onTap: () => _pickLocation(context, ref),
                   ),
                   if (user?.isArtisan == true) ...[
                     const SizedBox(width: 10),
@@ -160,8 +176,54 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-// A compact circular affordance for a header shortcut, used for both the
-// map and jumping into artisan mode, rather than full text buttons
+// The customer's own saved location, top-right, next to a drop-pin icon,
+// exactly the "where you are right now" affordance Bolt Food has, not a
+// literal map icon. Tapping it opens the map-based picker; saving there
+// is what makes nearbyArtisansProvider (and this label) update.
+class _LocationDisplay extends StatelessWidget {
+  const _LocationDisplay({required this.label, required this.onTap});
+  final String? label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: onTap,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 140),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: colorScheme.secondaryContainer,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.location_pin, size: 16, color: colorScheme.onSecondaryContainer),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                label ?? 'Set location',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSecondaryContainer,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// A compact circular affordance for a header shortcut, used for
+// jumping into artisan mode, rather than a full text button
 // competing with the headline for space.
 class _HeaderIconButton extends StatelessWidget {
   const _HeaderIconButton({
