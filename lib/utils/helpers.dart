@@ -28,3 +28,26 @@ double calculateDistanceKm(
 double _degreeToRadian(double degree) {
   return degree * pi / 180;
 }
+
+// A short "how long ago" caption for a timestamp, e.g. a booking request,
+// so a list of them reads by freshness at a glance instead of forcing a
+// full date scan to tell which one just came in.
+String timeAgo(DateTime dateTime) {
+  final diff = DateTime.now().difference(dateTime);
+  if (diff.inMinutes < 1) return 'Just now';
+  if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+  if (diff.inHours < 24) return '${diff.inHours}h ago';
+  if (diff.inDays < 7) return '${diff.inDays}d ago';
+  return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+}
+
+// A short clock time for a chat message, e.g. "9:05 AM", local time,
+// 12-hour clock. No intl dependency needed for something this small.
+String messageTime(DateTime dateTime) {
+  final local = dateTime.toLocal();
+  final hour24 = local.hour;
+  final hour12 = hour24 % 12 == 0 ? 12 : hour24 % 12;
+  final minute = local.minute.toString().padLeft(2, '0');
+  final period = hour24 < 12 ? 'AM' : 'PM';
+  return '$hour12:$minute $period';
+}

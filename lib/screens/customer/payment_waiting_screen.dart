@@ -79,7 +79,7 @@ class _PaymentWaitingScreenState extends ConsumerState<PaymentWaitingScreen> {
         if (!mounted) return;
 
         if (status == PaymentStatus.heldInEscrow) {
-          context.showSnack('Payment is secured in escrow.');
+          context.showSnack("Payment received! It's held safely until the job is done.");
           Navigator.pop(context);
           return;
         }
@@ -100,13 +100,13 @@ class _PaymentWaitingScreenState extends ConsumerState<PaymentWaitingScreen> {
     setState(() {
       _confirming = false;
       _confirmError =
-          "Still confirming, this can take a moment. Close and reopen if it doesn't update.";
+          "Still confirming your payment, this can take a moment. Check back shortly if it doesn't update.";
     });
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Pay with Paystack')),
+    appBar: AppBar(title: const Text('Payment')),
     body: Stack(
       children: [
         WebViewWidget(controller: _controller),

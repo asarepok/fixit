@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/verification_provider.dart';
 import '../../utils/extensions.dart';
+import '../../widgets/empty_state.dart';
 
 class ManageArtisansScreen extends ConsumerWidget {
   const ManageArtisansScreen({super.key});
@@ -41,7 +42,10 @@ class ManageArtisansScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(child: Text(error.toString())),
         data: (items) => items.isEmpty
-            ? const Center(child: Text('No applications awaiting review.'))
+            ? const EmptyState(
+                icon: Icons.fact_check_outlined,
+                title: 'No applications awaiting review',
+              )
             : ListView.builder(
                 padding: const EdgeInsets.all(20),
                 itemCount: items.length,
@@ -78,7 +82,7 @@ class ManageArtisansScreen extends ConsumerWidget {
                               ),
                               const SizedBox(width: 12),
                               Expanded(
-                                child: ElevatedButton(
+                                child: FilledButton(
                                   onPressed: loading
                                       ? null
                                       : () => _review(

@@ -56,11 +56,11 @@ class StatusChip extends StatelessWidget {
   factory StatusChip.payment(PaymentStatus status) {
     final (tone, label) = switch (status) {
       PaymentStatus.pending => (StatusTone.pending, 'Payment Pending'),
-      PaymentStatus.heldInEscrow => (StatusTone.accepted, 'Held in Escrow'),
-      PaymentStatus.releasing => (StatusTone.accepted, 'Releasing'),
-      PaymentStatus.released => (StatusTone.completed, 'Released'),
+      PaymentStatus.heldInEscrow => (StatusTone.accepted, 'Payment Secured'),
+      PaymentStatus.releasing => (StatusTone.accepted, 'Sending Payment'),
+      PaymentStatus.released => (StatusTone.completed, 'Paid'),
       PaymentStatus.refunded => (StatusTone.cancelled, 'Refunded'),
-      PaymentStatus.failed => (StatusTone.declined, 'Failed'),
+      PaymentStatus.failed => (StatusTone.declined, 'Payment Failed'),
     };
     return StatusChip(label: label, tone: tone);
   }

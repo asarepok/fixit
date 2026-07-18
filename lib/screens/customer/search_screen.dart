@@ -7,6 +7,8 @@ import '../../models/user_model.dart';
 import '../../providers/artisan_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/artisan_card.dart';
+import '../../widgets/empty_state.dart';
+import '../../widgets/grouped_card.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key, this.initialQuery = ''});
@@ -54,10 +56,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       appBar: AppBar(
         title: const Text('Search'),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(12),
-          child: Text(
-            _nearestFirst ? 'Sorted by nearest' : 'Sorted by rating',
-            style: const TextStyle(color: Colors.white70),
+          preferredSize: const Size.fromHeight(28),
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              _nearestFirst ? 'Sorted by nearest' : 'Sorted by rating',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
           ),
         ),
       ),
@@ -109,13 +114,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 );
               }
               return results.isEmpty
-                  ? const Padding(
-                      padding: EdgeInsets.all(28),
-                      child: Center(
-                        child: Text('No artisans match your search.'),
-                      ),
+                  ? const EmptyState(
+                      icon: Icons.search_off_rounded,
+                      title: 'No matches',
+                      message: 'Try a different name or trade.',
                     )
-                  : Column(
+                  : GroupedCard(
+                      indent: 78,
                       children: results
                           .map(
                             (artisan) => ArtisanCard(

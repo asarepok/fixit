@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/payment_provider.dart';
 import '../../utils/extensions.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/status_chip.dart';
 
 class ManagePaymentsScreen extends ConsumerWidget {
@@ -55,7 +56,10 @@ class ManagePaymentsScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(child: Text(error.toString())),
         data: (items) => items.isEmpty
-            ? const Center(child: Text('No payments found.'))
+            ? const EmptyState(
+                icon: Icons.payments_outlined,
+                title: 'No payments found',
+              )
             : ListView.builder(
                 padding: const EdgeInsets.all(20),
                 itemCount: items.length,

@@ -5,12 +5,13 @@ import 'package:go_router/go_router.dart';
 import '../../app/constants.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/chat_provider.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/user_name_label.dart';
 
-// The customer's "Chat" tab: every ticket-style thread they're part of.
-// Just a Scaffold wrapped around ChatThreadsList, see that widget for the
-// actual content, the artisan dashboard embeds the same list under its own
-// app bar instead of this one.
+// The customer's "Chat" tab: every thread they're part of. Just a
+// Scaffold wrapped around ChatThreadsList, see that widget for the actual
+// content, the artisan dashboard embeds the same list under its own app
+// bar instead of this one.
 class ChatScreen extends StatelessWidget {
   const ChatScreen({super.key});
 
@@ -21,9 +22,8 @@ class ChatScreen extends StatelessWidget {
   );
 }
 
-// The signed-in user's chat threads, newest activity first, either side
-// (customer or artisan). Fetched once on open, refetch with the pull to
-// refresh, no live listener, matching the rest of this app.
+// The signed-in user's chat threads, live, newest activity first, either
+// side (customer or artisan).
 class ChatThreadsList extends ConsumerWidget {
   const ChatThreadsList({super.key});
 
@@ -37,31 +37,10 @@ class ChatThreadsList extends ConsumerWidget {
       error: (error, stack) => Center(child: Text(error.toString())),
       data: (threads) {
         if (threads.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.forum_outlined,
-                    size: 64,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    'No conversations yet',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Messaging opens up once a booking is accepted.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ],
-              ),
-            ),
+          return const EmptyState(
+            icon: Icons.forum_outlined,
+            title: 'No conversations yet',
+            message: 'Messaging opens up once a booking is accepted.',
           );
         }
         return RefreshIndicator(

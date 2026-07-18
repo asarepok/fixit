@@ -31,7 +31,7 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
   Future<void> _sendRequest() async {
     if (_descriptionController.text.trim().isEmpty ||
         _locationController.text.trim().isEmpty) {
-      context.showSnack('Add a description and location for the artisan.');
+      context.showSnack("Let the artisan know what you need and where.");
       return;
     }
     if (widget.artisan == null) {
@@ -47,7 +47,11 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
             location: _locationController.text.trim(),
           );
       if (mounted) {
-        context.push(AppRoutes.bookingDetail, extra: bookingId);
+        // Replace, not push: the request form is done once a booking
+        // exists, so back from the detail screen should return to
+        // wherever the customer was before booking (the artisan's
+        // profile), not to a stale, already-submitted form.
+        context.pushReplacement(AppRoutes.bookingDetail, extra: bookingId);
       }
     } catch (error) {
       if (mounted) {
@@ -80,7 +84,7 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
             ),
           if (widget.artisan != null) const SizedBox(height: 24),
           Text(
-            'DESCRIBE THE PROBLEM',
+            'WHAT DO YOU NEED DONE?',
             style: Theme.of(context).textTheme.labelLarge,
           ),
           const SizedBox(height: 8),
@@ -89,11 +93,11 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
             maxLines: 4,
             textCapitalization: TextCapitalization.sentences,
             decoration: const InputDecoration(
-              hintText: 'Tell the artisan what needs to be fixed.',
+              hintText: "e.g. My kitchen tap is leaking and needs a new washer",
             ),
           ),
           const SizedBox(height: 20),
-          Text('LOCATION', style: Theme.of(context).textTheme.labelLarge),
+          Text('WHERE', style: Theme.of(context).textTheme.labelLarge),
           const SizedBox(height: 8),
           TextField(
             controller: _locationController,
@@ -109,7 +113,7 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
               : PrimaryButton(text: 'Send Request', onPressed: _sendRequest),
           const SizedBox(height: 12),
           Text(
-            'The artisan will accept or decline before any work is scheduled.',
+            "We'll let you know as soon as they respond.",
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium,
           ),

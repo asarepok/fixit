@@ -11,10 +11,17 @@ import '../../providers/app_mode_provider.dart';
 import '../../providers/booking_provider.dart';
 import '../../providers/chat_provider.dart';
 import '../../utils/extensions.dart';
+import '../../utils/helpers.dart';
 import '../../widgets/badged_icon.dart';
+import '../../widgets/detail_line.dart';
+import '../../widgets/empty_state.dart';
+import '../../widgets/grouped_card.dart';
+import '../../widgets/section_heading.dart';
 import '../../widgets/status_chip.dart';
+import '../../widgets/user_avatar.dart';
 import '../../widgets/user_name_label.dart';
 import '../chat/chat_screen.dart';
+import '../customer/profile_screen.dart';
 
 class ArtisanDashboardScreen extends ConsumerStatefulWidget {
   const ArtisanDashboardScreen({super.key});
@@ -26,7 +33,7 @@ class ArtisanDashboardScreen extends ConsumerStatefulWidget {
 class _ArtisanDashboardScreenState
     extends ConsumerState<ArtisanDashboardScreen> {
   int _tab = 0;
-  static const _labels = ['Requests', 'Jobs', 'Earnings', 'Chat', 'Profile'];
+  static const _labels = ['Dashboard', 'Requests', 'Jobs', 'Chat', 'Profile'];
 
   @override
   Widget build(BuildContext context) {
@@ -46,42 +53,49 @@ class _ArtisanDashboardScreenState
     final chatCount = ref.watch(myChatsProvider).valueOrNull?.length ?? 0;
 
     final Widget body = switch (_tab) {
-      0 => _RequestsTab(user: user, requestsCount: requestsCount, jobsCount: jobsCount),
-      1 => const _JobsTab(),
-      3 => const ChatThreadsList(),
-      _ => const _UnavailableWork(
-          message: 'Earnings will appear here once payout history is tracked.',
+      0 => _DashboardTab(
+          user: user,
+          requestsCount: requestsCount,
+          jobsCount: jobsCount,
+          onSeeRequests: () => setState(() => _tab = 1),
+          onSeeJobs: () => setState(() => _tab = 2),
         ),
+      1 => const _RequestsTab(),
+      2 => const _JobsTab(),
+      3 => const ChatThreadsList(),
+      _ => const ProfileScreen(),
     };
 
+    // Profile brings its own AppBar (it's the same screen a customer
+    // sees), so the shell's own bar, which exists for the per-tab title
+    // and the mode-switch action, steps aside rather than stacking a
+    // second bar on top of it.
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_tab == 0 ? 'Artisan Dashboard' : _labels[_tab]),
-        actions: [
-          TextButton.icon(
-            onPressed: () {
-              ref.read(appModeProvider.notifier).state = AppMode.customer;
-              context.go(AppRoutes.home);
-            },
-            icon: const Icon(Icons.swap_horiz_rounded, color: Colors.white),
-            label: const Text(
-              'Customer',
-              style: TextStyle(color: Colors.white),
+      appBar: _tab == 4
+          ? null
+          : AppBar(
+              title: Text(_labels[_tab]),
+              actions: [
+                TextButton.icon(
+                  onPressed: () {
+                    ref.read(appModeProvider.notifier).state = AppMode.customer;
+                    context.go(AppRoutes.home);
+                  },
+                  icon: const Icon(Icons.swap_horiz_rounded),
+                  label: const Text('Booking'),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
       body: body,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
-        onDestinationSelected: (index) {
-          if (index == 4) {
-            context.push(AppRoutes.profile);
-          } else {
-            setState(() => _tab = index);
-          }
-        },
+        onDestinationSelected: (index) => setState(() => _tab = index),
         destinations: [
+          const NavigationDestination(
+            icon: Icon(Icons.dashboard_outlined),
+            selectedIcon: Icon(Icons.dashboard),
+            label: 'Dashboard',
+          ),
           NavigationDestination(
             icon: BadgedIcon(
               icon: Icons.notifications_none,
@@ -97,11 +111,6 @@ class _ArtisanDashboardScreenState
             icon: BadgedIcon(icon: Icons.work_outline, count: jobsCount),
             selectedIcon: BadgedIcon(icon: Icons.work, count: jobsCount),
             label: 'Jobs',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.payments_outlined),
-            selectedIcon: Icon(Icons.payments),
-            label: 'Earnings',
           ),
           NavigationDestination(
             icon: BadgedIcon(icon: Icons.chat_outlined, count: chatCount),
@@ -119,123 +128,144 @@ class _ArtisanDashboardScreenState
   }
 }
 
-// Tab 0: a greeting, a few real counts, and the actual pending requests
-// waiting on this artisan, with Accept (asks for a quote) and Decline.
-class _RequestsTab extends ConsumerWidget {
-  const _RequestsTab({
+// Tab 0: the overview an artisan lands on, a greeting, earnings, rating,
+// and a glance at what's waiting elsewhere, each summary row jumps
+// straight to the tab it's summarizing. Deliberately separate from the
+// Requests tab: this is for checking in, Requests is for acting.
+class _DashboardTab extends ConsumerWidget {
+  const _DashboardTab({
     required this.user,
     required this.requestsCount,
     required this.jobsCount,
+    required this.onSeeRequests,
+    required this.onSeeJobs,
   });
 
   final UserModel? user;
   final int requestsCount;
   final int jobsCount;
+  final VoidCallback onSeeRequests;
+  final VoidCallback onSeeJobs;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final name = user?.name.isNotEmpty == true ? user!.name : 'Artisan';
+
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        Text(name, style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 18),
+        _BalanceCard(
+          balance: user?.balance ?? 0,
+          rating: user?.averageRating,
+          reviewCount: user?.ratingCount,
+        ),
+        const SizedBox(height: 22),
+        const SectionHeading(eyebrow: 'At a glance', title: 'Needs your attention'),
+        const SizedBox(height: 12),
+        GroupedCard(
+          indent: 56,
+          children: [
+            _GlanceRow(
+              icon: Icons.notifications_none,
+              title: 'New requests',
+              count: requestsCount,
+              onTap: onSeeRequests,
+            ),
+            _GlanceRow(
+              icon: Icons.work_outline,
+              title: 'Active jobs',
+              count: jobsCount,
+              onTap: onSeeJobs,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+// A tappable summary row: a count and where to go to act on it. Reads as
+// "here's what needs you," each row's own tab is where the actual list
+// and actions (Accept/Decline, Start/Complete) live.
+class _GlanceRow extends StatelessWidget {
+  const _GlanceRow({
+    required this.icon,
+    required this.title,
+    required this.count,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return ListTile(
+      onTap: onTap,
+      leading: Icon(icon),
+      title: Text(title),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (count > 0)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+              decoration: BoxDecoration(
+                color: colorScheme.primary,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                '$count',
+                style: TextStyle(
+                  color: colorScheme.onPrimary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
+              ),
+            )
+          else
+            Text('None', style: Theme.of(context).textTheme.bodyMedium),
+          const SizedBox(width: 6),
+          Icon(Icons.chevron_right_rounded, color: colorScheme.onSurfaceVariant),
+        ],
+      ),
+    );
+  }
+}
+
+// Tab 1: purely the actionable queue, pending requests waiting on Accept
+// (asks for a quote) or Decline. No balance, no stats, just the work.
+class _RequestsTab extends ConsumerWidget {
+  const _RequestsTab();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final requestsAsync = ref.watch(artisanRequestsProvider);
-    final name = user?.name.isNotEmpty == true ? user!.name : 'Artisan';
 
     return RefreshIndicator(
       onRefresh: () async => ref.invalidate(artisanRequestsProvider),
-      child: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Text(name, style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 6),
-          Text(
-            'Manage your service work in one place.',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.account_balance_wallet_outlined,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Available balance',
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'GH₵ ${(user?.balance ?? 0).toStringAsFixed(2)}',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 22),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1.45,
-            children: [
-              _Metric(
-                label: 'New requests',
-                value: '$requestsCount',
-                icon: Icons.notifications_none,
-              ),
-              _Metric(
-                label: 'Active jobs',
-                value: '$jobsCount',
-                icon: Icons.work_outline,
-              ),
-              _Metric(
-                label: 'Rating',
-                value: user?.averageRating != null
-                    ? user!.averageRating!.toStringAsFixed(1)
-                    : '—',
-                icon: Icons.star_outline,
-              ),
-              _Metric(
-                label: 'Reviews',
-                value: user?.ratingCount != null ? '${user!.ratingCount}' : '—',
-                icon: Icons.reviews_outlined,
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Text('New requests', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 12),
-          requestsAsync.when(
-            loading: () => const Padding(
-              padding: EdgeInsets.all(24),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-            error: (error, stack) => Text(error.toString()),
-            data: (requests) {
-              if (requests.isEmpty) {
-                return Text(
-                  'No new requests right now.',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                );
-              }
-              return Column(
-                children: requests
-                    .map((booking) => _RequestCard(booking: booking))
-                    .toList(),
-              );
-            },
-          ),
-        ],
+      child: requestsAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(child: Text(error.toString())),
+        data: (requests) {
+          if (requests.isEmpty) {
+            return const EmptyState(
+              icon: Icons.inbox_outlined,
+              title: 'No new requests',
+              message: 'New booking requests will show up here.',
+            );
+          }
+          return ListView.builder(
+            padding: const EdgeInsets.all(20),
+            itemCount: requests.length,
+            itemBuilder: (context, index) => _RequestCard(booking: requests[index]),
+          );
+        },
       ),
     );
   }
@@ -339,18 +369,28 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            UserNameLabel(
-              uid: widget.booking.customerId,
-              style: Theme.of(context).textTheme.titleMedium,
+            Row(
+              children: [
+                UserAvatar(uid: widget.booking.customerId, radius: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: UserNameLabel(
+                    uid: widget.booking.customerId,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                if (widget.booking.createdAt != null)
+                  Text(
+                    timeAgo(widget.booking.createdAt!),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11.5),
+                  ),
+              ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 12),
             Text(widget.booking.description),
-            const SizedBox(height: 4),
-            Text(
-              widget.booking.location,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 6),
+            DetailLine(icon: Icons.location_on_outlined, text: widget.booking.location),
+            const SizedBox(height: 16),
             _loading
                 ? const Center(child: CircularProgressIndicator())
                 : Row(
@@ -363,7 +403,7 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: ElevatedButton(
+                        child: FilledButton(
                           onPressed: _accept,
                           child: const Text('Accept'),
                         ),
@@ -391,14 +431,10 @@ class _JobsTab extends ConsumerWidget {
       error: (error, stack) => Center(child: Text(error.toString())),
       data: (jobs) {
         if (jobs.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Text(
-                'No active jobs right now.',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            ),
+          return const EmptyState(
+            icon: Icons.work_outline,
+            title: 'No active jobs',
+            message: 'Accepted requests you start work on will show up here.',
           );
         }
         return RefreshIndicator(
@@ -443,7 +479,7 @@ class _JobCardState extends ConsumerState<_JobCard> {
     setState(() => _loading = true);
     try {
       await ref.read(bookingControllerProvider.notifier).completeJob(widget.booking.id);
-      if (mounted) context.showSnack('Job marked complete.');
+      if (mounted) context.showSnack('Marked as done!');
     } catch (error) {
       if (mounted) context.showSnack(error.toString());
     } finally {
@@ -467,23 +503,27 @@ class _JobCardState extends ConsumerState<_JobCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            UserNameLabel(
-              uid: booking.customerId,
-              style: Theme.of(context).textTheme.titleMedium,
+            Row(
+              children: [
+                UserAvatar(uid: booking.customerId, radius: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: UserNameLabel(
+                    uid: booking.customerId,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                StatusChip.booking(booking.status),
+              ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 12),
             Text(booking.description),
-            const SizedBox(height: 4),
-            Text(
-              booking.location,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 4),
-            StatusChip.booking(booking.status),
+            const SizedBox(height: 6),
+            DetailLine(icon: Icons.location_on_outlined, text: booking.location),
             const SizedBox(height: 14),
             if (waitingOnPayment)
               Text(
-                'Waiting for the customer to pay into escrow.',
+                "Waiting for the customer to pay before you can start.",
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             if (_loading && (canStart || canComplete))
@@ -492,7 +532,7 @@ class _JobCardState extends ConsumerState<_JobCard> {
               if (canStart)
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
+                  child: FilledButton(
                     onPressed: _start,
                     child: const Text('Start Job'),
                   ),
@@ -500,9 +540,9 @@ class _JobCardState extends ConsumerState<_JobCard> {
               if (canComplete)
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
+                  child: FilledButton(
                     onPressed: _complete,
-                    child: const Text('Mark Complete'),
+                    child: const Text('Mark as Done'),
                   ),
                 ),
             ],
@@ -513,52 +553,122 @@ class _JobCardState extends ConsumerState<_JobCard> {
   }
 }
 
-class _Metric extends StatelessWidget {
-  const _Metric({required this.label, required this.value, required this.icon});
-  final String label;
-  final String value;
-  final IconData icon;
+// The earnings hero: the number an artisan opens this tab to check. Sits
+// on the primary color so it reads as the one thing on this screen that
+// matters most. Rating and review count ride along as secondary stats in
+// the same card, they're the other two numbers that describe "how am I
+// doing," not actionable items like the glance rows below.
+class _BalanceCard extends StatelessWidget {
+  const _BalanceCard({
+    required this.balance,
+    required this.rating,
+    required this.reviewCount,
+  });
+  final double balance;
+  final double? rating;
+  final int? reviewCount;
+
   @override
-  Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(14),
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: colorScheme.primary,
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(height: 6),
-          Text(value, style: Theme.of(context).textTheme.titleLarge),
-          Text(label, style: Theme.of(context).textTheme.bodyMedium),
+          Row(
+            children: [
+              Icon(Icons.account_balance_wallet_rounded, color: colorScheme.onPrimary, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'AVAILABLE BALANCE',
+                style: TextStyle(
+                  color: colorScheme.onPrimary.withValues(alpha: 0.85),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 11,
+                  letterSpacing: 0.6,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'GH₵ ${balance.toStringAsFixed(2)}',
+            style: TextStyle(
+              color: colorScheme.onPrimary,
+              fontSize: 30,
+              fontWeight: FontWeight.w800,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+          const SizedBox(height: 18),
+          Container(height: 1, color: colorScheme.onPrimary.withValues(alpha: 0.18)),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _BalanceStat(
+                  icon: Icons.star_rounded,
+                  value: rating != null ? rating!.toStringAsFixed(1) : '—',
+                  label: 'Rating',
+                ),
+              ),
+              Container(
+                width: 1,
+                height: 28,
+                color: colorScheme.onPrimary.withValues(alpha: 0.18),
+              ),
+              Expanded(
+                child: _BalanceStat(
+                  icon: Icons.reviews_rounded,
+                  value: reviewCount != null ? '$reviewCount' : '—',
+                  label: 'Reviews',
+                ),
+              ),
+            ],
+          ),
         ],
       ),
-    ),
-  );
+    );
+  }
 }
 
-class _UnavailableWork extends StatelessWidget {
-  const _UnavailableWork({required this.message});
-  final String message;
+class _BalanceStat extends StatelessWidget {
+  const _BalanceStat({required this.icon, required this.value, required this.label});
+  final IconData icon;
+  final String value;
+  final String label;
+
   @override
-  Widget build(BuildContext context) => Center(
-    child: Padding(
-      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.work_outline,
-            size: 56,
-            color: Theme.of(context).colorScheme.primary,
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Icon(icon, color: colorScheme.onPrimary.withValues(alpha: 0.85), size: 16),
+        const SizedBox(width: 6),
+        Text(
+          value,
+          style: TextStyle(
+            color: colorScheme.onPrimary,
+            fontWeight: FontWeight.w700,
+            fontSize: 14,
+            fontFeatures: const [FontFeature.tabularFigures()],
           ),
-          const SizedBox(height: 16),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            color: colorScheme.onPrimary.withValues(alpha: 0.75),
+            fontSize: 12,
           ),
-        ],
-      ),
-    ),
-  );
+        ),
+      ],
+    );
+  }
 }

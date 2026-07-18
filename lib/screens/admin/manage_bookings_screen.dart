@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/booking_provider.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/status_chip.dart';
 
 class ManageBookingsScreen extends ConsumerWidget {
@@ -17,7 +18,10 @@ class ManageBookingsScreen extends ConsumerWidget {
         error: (error, stack) => Center(child: Text(error.toString())),
         data: (items) {
           if (items.isEmpty) {
-            return const Center(child: Text('No bookings found.'));
+            return const EmptyState(
+              icon: Icons.event_note_outlined,
+              title: 'No bookings found',
+            );
           }
           return ListView.builder(
             padding: const EdgeInsets.all(20),
