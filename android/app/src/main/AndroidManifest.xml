@@ -9,7 +9,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <application
-        android:label="fixit_gh"
+        android:label="FixIt"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
