@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -15,6 +17,7 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final _controller = PageController();
   int _currentIndex = 0;
+  Timer? _autoAdvanceTimer;
 
   static const _pages = [
     (
@@ -35,7 +38,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _scheduleAutoAdvance();
+  }
+
+  // Restarted on every page change, manual or automatic, so a swipe right
+  // before the timer was due to fire doesn't get immediately followed by
+  // another auto-advance.
+  void _scheduleAutoAdvance() {
+    _autoAdvanceTimer?.cancel();
+    _autoAdvanceTimer = Timer(const Duration(seconds: 4), () {
+      final nextPage = (_currentIndex + 1) % _pages.length;
+      _controller.animateToPage(
+        nextPage,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  @override
   void dispose() {
+    _autoAdvanceTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -59,8 +84,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: PageView.builder(
                   controller: _controller,
                   itemCount: _pages.length,
-                  onPageChanged: (value) =>
-                      setState(() => _currentIndex = value),
+                  onPageChanged: (value) {
+                    setState(() => _currentIndex = value);
+                    _scheduleAutoAdvance();
+                  },
                   itemBuilder: (_, index) {
                     final item = _pages[index];
                     return Column(
