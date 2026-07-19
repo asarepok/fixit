@@ -24,6 +24,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void dispose() {
@@ -31,6 +35,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _emailController.dispose();
     _phoneController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -43,7 +48,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (Validators.isEmpty(_nameController.text) ||
         Validators.isEmpty(_emailController.text) ||
         Validators.isEmpty(_phoneController.text) ||
-        Validators.isEmpty(_passwordController.text)) {
+        Validators.isEmpty(_passwordController.text) ||
+        Validators.isEmpty(_confirmPasswordController.text)) {
       context.showSnack("Please fill all fields");
       return;
     }
@@ -57,6 +63,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
     if (_passwordController.text.length < 6) {
       context.showSnack('Password must be at least 6 characters.');
+      return;
+    }
+    if (_passwordController.text != _confirmPasswordController.text) {
+      context.showSnack('Passwords do not match.');
       return;
     }
 
@@ -137,8 +147,41 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
             TextField(
               controller: _passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(hintText: 'Create a password'),
+              obscureText: _obscurePassword,
+              decoration: InputDecoration(
+                hintText: 'Create a password',
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                  ),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 18),
+            Text('CONFIRM PASSWORD', style: Theme.of(context).textTheme.labelLarge),
+            const SizedBox(height: 8),
+
+            TextField(
+              controller: _confirmPasswordController,
+              obscureText: _obscureConfirmPassword,
+              decoration: InputDecoration(
+                hintText: 'Re-enter your password',
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureConfirmPassword
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                  ),
+                  onPressed: () => setState(
+                    () => _obscureConfirmPassword = !_obscureConfirmPassword,
+                  ),
+                ),
+              ),
             ),
 
             const SizedBox(height: 28),
