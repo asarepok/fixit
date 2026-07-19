@@ -30,41 +30,23 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF5B98E5), Color(0xFF78B0EF)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: const Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      // A near-black background rather than the logo's own navy or orange,
+      // matching either exactly would make that half of the logo vanish
+      // into it. This also matches the app's own dark theme surface.
+      backgroundColor: const Color(0xFF14171B),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            CircleAvatar(
-              radius: 34,
-              backgroundColor: Colors.transparent,
-              child: Icon(
-                Icons.handyman_rounded,
-                color: Colors.white,
-                size: 42,
-              ),
+            Image.asset(
+              'assets/images/fixit_logo.png',
+              width: 220,
             ),
-            SizedBox(height: 22),
-            Text(
-              'FixIt GH',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            SizedBox(height: 12),
-            Text(
-              'Trusted artisans at your\nfingertips',
+            const SizedBox(height: 18),
+            const Text(
+              'Trusted artisans at your fingertips',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white, fontSize: 15),
+              style: TextStyle(color: Colors.white70, fontSize: 14),
             ),
           ],
         ),
