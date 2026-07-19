@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/constants.dart';
+import '../../widgets/onboarding_illustrations.dart';
 import '../../widgets/primary_button.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -17,17 +18,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   static const _pages = [
     (
-      Icons.search_rounded,
+      OnboardingIllustrationType.findArtisans,
       'Find Skilled Artisans',
       'Search verified plumbers, electricians, mechanics and many more.',
     ),
     (
-      Icons.home_outlined,
+      OnboardingIllustrationType.bookEasily,
       'Book Easily',
       'Request services in just a few taps, from anywhere.',
     ),
     (
-      Icons.star_outline_rounded,
+      OnboardingIllustrationType.trust,
       'Built on Trust',
       'Choose skilled artisans and share your experience after every job.',
     ),
@@ -65,11 +66,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     return Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          item.$1,
-                          size: 100,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
+                        OnboardingIllustration(item.$1),
                         const SizedBox(height: 34),
                         Text(
                           item.$2,
