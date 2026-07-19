@@ -65,6 +65,23 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
 
+  flutter_launcher_icons: ^0.14.3
+
+# Generates the Android/iOS launcher icon from our own logo, run with
+# `dart run flutter_launcher_icons` after changing anything here. image_path
+# is the flat icon (solid background baked in, no transparency, needed for
+# iOS). adaptive_icon_foreground/background are Android-only: a transparent
+# foreground layer plus a plain background color, so the OS can apply its
+# own circle/squircle/rounded-square mask per device without clipping into
+# the artwork, see assets/icons/app_icon_foreground.png for how it's padded
+# for that safe zone.
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/app_icon.png"
+  adaptive_icon_background: "#14171B"
+  adaptive_icon_foreground: "assets/icons/app_icon_foreground.png"
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
