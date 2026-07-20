@@ -49,38 +49,33 @@ service cloud.firestore {
     }
 
     // ---- bookings ----
-    // TEMP-DEMO-INSECURE: ownership checks disabled to unblock a demo,
-    // any signed-in user can read or write any booking right now. This is
-    // NOT safe to leave live, revert to the commented rules below right
-    // after the demo.
+    // A customer can only read/cancel their own bookings, an artisan only
+    // their own assigned bookings, admins see everything. paymentStatus is
+    // Cloud-Function-only (set from the Admin SDK after a Paystack
+    // webhook), never client-writable.
     match /bookings/{bookingId} {
-      allow read, write: if isSignedIn();
+      allow read: if isSignedIn() &&
+        (resource.data.customerId == request.auth.uid ||
+         resource.data.artisanId == request.auth.uid ||
+         isAdmin());
+
+      allow create: if isSignedIn() &&
+        request.resource.data.customerId == request.auth.uid &&
+        request.resource.data.customerId != request.resource.data.artisanId &&
+        request.resource.data.status == 'pending';
+
+      allow update: if isSignedIn() && unchanged('paymentStatus') && (
+        (resource.data.customerId == request.auth.uid && (
+          (resource.data.status == 'pending' && request.resource.data.status == 'cancelled') ||
+          (unchanged('status') && unchanged('artisanId') && unchanged('description') &&
+           unchanged('location') && unchanged('amount'))
+        )) ||
+        (resource.data.artisanId == request.auth.uid) ||
+        isAdmin()
+      );
+
       allow delete: if false;
     }
-    // Original, ownership-scoped rules, restore these after the demo:
-    // match /bookings/{bookingId} {
-    //   allow read: if isSignedIn() &&
-    //     (resource.data.customerId == request.auth.uid ||
-    //      resource.data.artisanId == request.auth.uid ||
-    //      isAdmin());
-    //
-    //   allow create: if isSignedIn() &&
-    //     request.resource.data.customerId == request.auth.uid &&
-    //     request.resource.data.customerId != request.resource.data.artisanId &&
-    //     request.resource.data.status == 'pending';
-    //
-    //   allow update: if isSignedIn() && unchanged('paymentStatus') && (
-    //     (resource.data.customerId == request.auth.uid && (
-    //       (resource.data.status == 'pending' && request.resource.data.status == 'cancelled') ||
-    //       (unchanged('status') && unchanged('artisanId') && unchanged('description') &&
-    //        unchanged('location') && unchanged('amount'))
-    //     )) ||
-    //     (resource.data.artisanId == request.auth.uid) ||
-    //     isAdmin()
-    //   );
-    //
-    //   allow delete: if false;
-    // }
 
     // ---- reviews ----
     // Public read (shown on artisan profiles). A customer can only review
@@ -111,38 +106,28 @@ service cloud.firestore {
     }
 
     // ---- chats & messages ----
-    // TEMP-DEMO-INSECURE: participant checks disabled to unblock a demo,
-    // any signed-in user can read or write any thread/message right now.
-    // This is NOT safe to leave live, revert to the commented rules below
-    // right after the demo.
+    // Only the two participants can read/write a thread. A message's
+    // read/create access is checked against the parent chat's participants
+    // via get(), not the message doc itself, since a message has no
+    // customerId/artisanId of its own.
     match /chats/{chatId} {
-      allow read, write: if isSignedIn();
+      allow read, update: if isSignedIn() &&
+        (resource.data.customerId == request.auth.uid || resource.data.artisanId == request.auth.uid);
+      allow create: if isSignedIn() &&
+        (request.resource.data.customerId == request.auth.uid || request.resource.data.artisanId == request.auth.uid);
       allow delete: if false;
 
       match /messages/{messageId} {
-        allow read, write: if isSignedIn();
+        allow read: if isSignedIn() &&
+          (get(/databases/$(database)/documents/chats/$(chatId)).data.customerId == request.auth.uid ||
+           get(/databases/$(database)/documents/chats/$(chatId)).data.artisanId == request.auth.uid);
+        allow create: if isSignedIn() &&
+          request.resource.data.senderId == request.auth.uid &&
+          (get(/databases/$(database)/documents/chats/$(chatId)).data.customerId == request.auth.uid ||
+           get(/databases/$(database)/documents/chats/$(chatId)).data.artisanId == request.auth.uid);
         allow update, delete: if false;
       }
     }
-    // Original, participant-scoped rules, restore these after the demo:
-    // match /chats/{chatId} {
-    //   allow read, update: if isSignedIn() &&
-    //     (resource.data.customerId == request.auth.uid || resource.data.artisanId == request.auth.uid);
-    //   allow create: if isSignedIn() &&
-    //     (request.resource.data.customerId == request.auth.uid || request.resource.data.artisanId == request.auth.uid);
-    //   allow delete: if false;
-    //
-    //   match /messages/{messageId} {
-    //     allow read: if isSignedIn() &&
-    //       (get(/databases/$(database)/documents/chats/$(chatId)).data.customerId == request.auth.uid ||
-    //        get(/databases/$(database)/documents/chats/$(chatId)).data.artisanId == request.auth.uid);
-    //     allow create: if isSignedIn() &&
-    //       request.resource.data.senderId == request.auth.uid &&
-    //       (get(/databases/$(database)/documents/chats/$(chatId)).data.customerId == request.auth.uid ||
-    //        get(/databases/$(database)/documents/chats/$(chatId)).data.artisanId == request.auth.uid);
-    //     allow update, delete: if false;
-    //   }
-    // }
 
     // ---- verification_requests (Become an Artisan applications) ----
     // An applicant can create and read their own request. Only admins can
